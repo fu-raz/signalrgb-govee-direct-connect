@@ -5,12 +5,9 @@ export function Name() { return "Govee Direct Connect"; }
 export function Version() { return "0.0.1"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }
-// export function Documentation() { return "gettingstarted/srgbmods-net-info"; }
-export function Size() { return [1, 1]; }
-export function DefaultPosition(){return [0, 0]; }
-export function DefaultScale(){return 1.0; }
-// export function SupportsSubdevices(){ return true; }
-// export function DefaultComponentBrand() { return "CompGen"; }
+export function Size() { return [22, 1]; }
+export function DefaultPosition() {return [0, 70]; }
+export function DefaultScale(){return 2.0;}
 export function ControllableParameters()
 {
 	return [
@@ -20,20 +17,29 @@ export function ControllableParameters()
 	];
 }
 
+export function SubdeviceController() { return false; }
+
+let goveeUI;
+
 export function Initialize()
 {
-	device.addFeature("udp");
-	device.addFeature("base64");
+    device.log('Creating Govee Device UI');
+	goveeUI = new GoveeDeviceUI(device, controller);
+}
+
+export function Render()
+{
+    goveeUI.render();
 }
 
 export function DiscoveryService()
 {
     this.lastPollTime = -5000;
-	this.PollInterval = 5000;
+    this.PollInterval = 5000;
 
     this.UdpBroadcastPort = 4003;
     this.UdpBroadcastAddress = '192.168.100.38' // <-- MAKE SURE YOU CHANGE THIS IP TO YOUR DEVICE'S IP
-	this.UdpListenPort = 4002;
+    this.UdpListenPort = 4002;
 
     this.testCommands = [];
     this.GoveeDevices = {
@@ -52,17 +58,25 @@ export function DiscoveryService()
         // This should change the IP:
         // this.UdpBroadcastAddress = ip;
 
-        let goveeInstance = new Govee(ip, leds ? leds : 1, type ? type : 3);
+        let goveeInstance = new GoveeDevice({ip: ip, leds: leds ? leds : 1, type: type ? type : 3});
         this.testCommands = goveeInstance.getTests();
     }
 
     this.forceDiscover = function(ip, leds, type)
     {
-        let goveeLight = { ip: ip, ledCount: leds, type: type };
-        let forcedGoveeDevices = JSON.parse( service.getSetting("goveeForced", "devices") );
+        let goveeLight = { ip: ip, leds: parseInt(leds), type: parseInt(type) };
+
+        let forcedGoveeDevices;
+        try {
+            forcedGoveeDevices = JSON.parse( service.getSetting('goveeForced', 'devices') );
+        } catch(ex)
+        {
+            forcedGoveeDevices = [];
+        }
+
         forcedGoveeDevices.push(goveeLight);
         
-        service.saveSetting("goveeForced", "devices", JSON.stringify( forcedGoveeDevices ));
+        service.saveSetting('goveeForced', 'devices', JSON.stringify( forcedGoveeDevices ));
         this.devicesLoaded = false;
 
         this.Update();
@@ -72,7 +86,7 @@ export function DiscoveryService()
     {
         service.log('Trying to load forced devices');
 
-        let deviceList = service.getSetting("goveeForced", "devices");
+        let deviceList = service.getSetting('goveeForced', 'devices');
 		if(deviceList !== undefined)
         {
             deviceList = JSON.parse(deviceList)
@@ -81,19 +95,25 @@ export function DiscoveryService()
             {
                 if (!deviceList.includes(ip))
                 {
+                    let goveeController = service.getController(ip);
                     // Disconnect the Govee device
+                    service.removeController(goveeController);
                     this.GoveeDevices[ip].delete();
                     delete this.GoveeDevices[ip];
                 }
             }
 
-            for(let goveeDevice of deviceList)
+            for(let goveeDeviceData of deviceList)
             {
-                if (!Object.keys(this.GoveeDevices).includes(goveeDevice.ip))
+                if (goveeDeviceData === null) continue;
+
+                if (!Object.keys(this.GoveeDevices).includes(goveeDeviceData.ip))
                 {
-                    // Create new govee object
-                    let newGoveeDevice = new Govee(goveeDevice.ip, goveeDevice.leds, goveeDevice.type);
-                    this.GoveeDevices[goveeDevice.ip] = newGoveeDevice
+                    service.log('Adding new Govee controller for ' + goveeDeviceData.ip);
+
+                    let goveeController = new GoveeController(goveeDeviceData);
+                    this.GoveeDevices[goveeDeviceData.ip] = goveeController;
+                    service.addController( goveeController );
                 }
             }
             
@@ -125,25 +145,75 @@ export function DiscoveryService()
                 service.broadcast( JSON.stringify(cmd.command) );
             }
         }
+
+        for(const controller of service.controllers)
+        {
+			controller.obj.update();
+		}
     }
 
     this.Discovered = function(value)
     {
 		service.log(value.response);
 	};
+
+    this.Delete = function(ip)
+    {
+        const deviceListJSON = service.getSetting('goveeForced', 'devices');
+        let deviceList = JSON.parse(deviceListJSON);
+
+        for(let idx in deviceList)
+        {
+            if (deviceList[idx].ip == ip)
+            {
+                // Delete the controller entry
+                delete deviceList[idx];
+                // Save the new settings
+                service.saveSetting('goveeForced', 'devices', JSON.stringify(deviceList));
+                // Reload the devices
+                this.loadForcedDevices();
+                return;
+            }
+        }
+
+    }
 }
 
-class Govee
+class GoveeController
 {
-    constructor(ip, leds, type)
+    constructor(device)
     {
-        this.ip = ip;
-        this.leds = parseInt(leds);
-        this.type = parseInt(type);
+        this.id = device.ip;
+        this.name = `Govee Controller for: ${device.ip}`;
+        this.device = device;
+        this.initialized = false;
+    }
 
-        this.service = service;
+    update()
+    {
+		if(!this.initialized)
+        {
+			this.initialized = true;
+            service.log('Announcing Govee Controller for ip: ' + this.id);
+			service.announceController(this);
+		}
+	}
 
-        this.service.log('Created govee device with ip '+ip);
+    delete()
+    {
+        service.log('Trying to delete controller for ip: ' + this.id);
+    }
+}
+
+class GoveeDevice
+{
+    constructor(data)
+    {
+        this.ip = data.ip;
+        this.port = 4003
+        this.leds = parseInt(data.leds);
+        this.type = parseInt(data.type);
+        this.enabled = false;
     }
 
     getStatus()
@@ -151,7 +221,7 @@ class Govee
 
     }
 
-    getRazerModeCommand(enable)
+    getRazerModeCommands(enable)
     {
         let command = base64.encode([0xBB, 0x00, 0x01, 0xB1, enable, 0x0A]);
 
@@ -258,7 +328,7 @@ class Govee
         let commands = [];
 
         // Add the Razer mode commands
-        commands = commands.concat( this.getRazerModeCommand(true) );
+        commands = commands.concat( this.getRazerModeCommands(true) );
 
         let minLedAmount = 1;
         let maxLedAmount = this.leds;
@@ -286,5 +356,121 @@ class Govee
           checksum ^= packet[i];
         }
         return checksum;
+    }
+
+    sendRGB(colors)
+    {
+        if (!this.enabled)
+        {
+            let commands = this.getRazerModeCommands(true);
+            device.log(commands);
+            for(const command of commands)
+            {
+                this.send(command.command);
+            }
+            this.enabled = true;
+        }
+
+        // Send RGB command
+        let colorCommand = this.getColorCommand(colors);
+        this.send(colorCommand);
+    }
+
+    send(command)
+    {
+        // device.log('Sending command: ' + JSON.stringify(command));
+        udp.send(this.ip, this.port, command);
+    }
+}
+
+class GoveeDeviceUI
+{
+    constructor(deviceInstance, controller)
+    {
+        this.ledCount = 0;
+        this.ledNames = [];
+        this.ledPositions = [];
+
+        this.device = deviceInstance
+        this.controller = controller;
+        this.log(controller.device);
+        this.goveeDevice = new GoveeDevice(this.controller.device);
+
+        this.device.addFeature("udp");
+        this.device.addFeature("base64");
+        this.device.setName(this.controller.name);
+
+        this.setLedCount(this.controller.device.leds);
+    }
+
+    log(data)
+    {
+        this.device.log(data);
+    }
+
+    setLedCount(count)
+    {
+        this.log(`Setting led count to ${count}`);
+        this.ledCount = count;
+    
+        this.createLedMap(count);
+
+        this.device.setSize([count, 1]);
+        this.device.setControllableLeds(this.ledNames, this.ledPositions);
+    }
+    
+    createLedMap(count)
+    {
+        this.ledNames = [];
+        this.ledPositions = [];
+    
+        for(let i = 0; i < count; i++)
+        {
+            this.ledNames.push(`Led ${i + 1}`);
+            this.ledPositions.push([i, 0]);
+        }
+    }
+
+    render()
+    {
+        let RGBData = [];
+
+        RGBData = this.getDeviceRGB();
+
+        this.goveeDevice.sendRGB(RGBData);
+        this.device.pause(10);
+    }
+
+    getRGBFromSubdevices()
+    {
+        const RGBData = [];
+    
+        for(const subdevice of subdevices){
+            const ledPositions = subdevice.ledPositions;
+    
+            for(let i = 0 ; i < ledPositions.length; i++){
+                const ledPosition = ledPositions[i];
+    
+                const color = device.subdeviceColor(subdevice.id, ledPosition[0], ledPosition[1]);
+                RGBData.push(color[0]);
+                RGBData.push(color[1]);
+                RGBData.push(color[2]);
+            }
+        }
+    
+        return RGBData;
+    }
+    
+    getDeviceRGB()
+    {
+        const RGBData = [];
+    
+        for(let i = 0 ; i < this.ledPositions.length; i++){
+            const ledPosition = this.ledPositions[i];
+            const color = this.device.color(ledPosition[0], ledPosition[1]);
+            RGBData.push(color);
+        }
+    
+        return RGBData;
     }
 }
