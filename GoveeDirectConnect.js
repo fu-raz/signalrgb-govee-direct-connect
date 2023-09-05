@@ -1,7 +1,7 @@
 import base64 from "@SignalRGB/base64"
 // import udp from "@SignalRGB/udp"
 
-export function Name() { return "Govee Forced"; }
+export function Name() { return "Govee Direct Connect"; }
 export function Version() { return "0.0.1"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }

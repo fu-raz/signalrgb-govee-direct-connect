@@ -18,7 +18,7 @@ Item {
 					spacing: 0
 					Text {
 						color: theme.primarytextcolor
-						text: "Force Connect to Govee IP"
+						text: "Direct Connect to Govee IP"
 						font.pixelSize: 16
 						font.family: "Poppins"
 						font.bold: true
