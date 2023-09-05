@@ -32,7 +32,7 @@ export function DiscoveryService()
 	this.PollInterval = 5000;
 
     this.UdpBroadcastPort = 4003;
-    this.UdpBroadcastAddress = '192.168.100.38'
+    this.UdpBroadcastAddress = '192.168.100.38' // <-- MAKE SURE YOU CHANGE THIS IP TO YOUR DEVICE'S IP
 	this.UdpListenPort = 4002;
 
     this.testCommands = [];
@@ -53,7 +53,6 @@ export function DiscoveryService()
         // this.UdpBroadcastAddress = ip;
 
         let goveeInstance = new Govee(ip, leds ? leds : 1, type ? type : 3);
-        goveeInstance.getStatus();
         this.testCommands = goveeInstance.getTests();
     }
 
@@ -95,7 +94,6 @@ export function DiscoveryService()
                     // Create new govee object
                     let newGoveeDevice = new Govee(goveeDevice.ip, goveeDevice.leds, goveeDevice.type);
                     this.GoveeDevices[goveeDevice.ip] = newGoveeDevice
-                    newGoveeDevice.getStatus();
                 }
             }
             
@@ -150,12 +148,7 @@ class Govee
 
     getStatus()
     {
-        this.service.log('Getting device status');
-        this.service.broadcast( JSON.stringify( { msg: { cmd: "turn", data: { value: 1 } } } ) );
-        this.service.broadcast( JSON.stringify( { msg: { cmd: "devStatus", data: {} }} ) );
-        this.service.broadcast( JSON.stringify( { msg: { cmd: "status", data: {} }} ) );
-        this.service.broadcast( JSON.stringify( { msg: { cmd: "devStatus", data: {} }} ) );
-        this.service.broadcast( JSON.stringify( { msg: { cmd: "status", data: {} }} ) );
+
     }
 
     getRazerModeCommand(enable)
