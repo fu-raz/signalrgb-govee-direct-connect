@@ -29,6 +29,16 @@ Item {
 				width: parent.width
 				wrapMode: Text.WordWrap
 			}
+			Text {
+				color: theme.primarytextcolor
+				text: "If you just want to add multiple Govee devices you can enter the IP address, the amount of leds, select the protocol type and press ADD. Changing the led amount or protocol type on a controller doesn't work yet."
+				font.pixelSize: 16
+				font.family: "Poppins"
+				font.bold: false
+				bottomPadding: 10
+				width: parent.width
+				wrapMode: Text.WordWrap
+			}
 			Row {
 				
 				spacing: 5
