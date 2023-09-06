@@ -42,7 +42,7 @@ export function DiscoveryService()
     this.PollInterval = 5000;
 
     this.UdpBroadcastPort = 4003;
-    this.UdpBroadcastAddress = '192.168.100.246' // <-- MAKE SURE YOU CHANGE THIS IP TO YOUR DEVICE'S IP
+    this.UdpBroadcastAddress = '192.168.100.38' // <-- MAKE SURE YOU CHANGE THIS IP TO YOUR DEVICE'S IP
     this.UdpListenPort = 4002;
 
     this.testCommands = [];
@@ -293,7 +293,8 @@ class GoveeDevice
         }
 
         // Add razer checksum
-        colorsCommand.push(0);
+        colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
+        // colorsCommand.push(0);
 
         return {cmd: "razer", data: { pt: base64.encode(colorsCommand) } };
     }
