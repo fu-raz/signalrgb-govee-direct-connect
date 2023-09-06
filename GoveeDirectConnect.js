@@ -282,11 +282,10 @@ class GoveeDevice
 
     getRazerCommand(colors)
     {
-        let razerColors = 4;
-        let razerHeader = [0xBB, 0x00, 0x0E, 0xB0, 0x01, razerColors];
+        let razerHeader = [0xBB, 0x00, 0x0E, 0xB0, 0x01, colors.length];
         
         let colorsCommand = razerHeader;
-        for(let c = 0; c < razerColors; c++)
+        for(let c = 0; c < colors.length; c++)
         {
             // Color is an [r,g,b] array
             let color = colors[c];
