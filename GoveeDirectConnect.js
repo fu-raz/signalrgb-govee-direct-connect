@@ -1,5 +1,4 @@
-import base64 from "@SignalRGB/base64"
-// import udp from "@SignalRGB/udp"
+import base64 from "@SignalRGB/base64";
 
 export function Name() { return "Govee Direct Connect"; }
 export function Version() { return "0.0.1"; }
@@ -13,7 +12,7 @@ export function ControllableParameters()
 	return [
 		{"property":"LightingMode", "group":"settings", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced"], "default":"Canvas"},
 		{"property":"forcedColor", "group":"settings", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
-		{"property":"turnOffOnShutdown", "group":"settings", "label":"Turn WLED device OFF on Shutdown", "type":"boolean", "default":"false"},
+		{"property":"turnOffOnShutdown", "group":"settings", "label":"Turn Govee device OFF on Shutdown", "type":"boolean", "default":"false"}
 	];
 }
 
@@ -30,6 +29,11 @@ export function Initialize()
 export function Render()
 {
     goveeUI.render();
+}
+
+export function Shutdown(suspend)
+{
+	goveeUI.shutDown(turnOffOnShutdown);
 }
 
 export function DiscoveryService()
@@ -210,7 +214,8 @@ class GoveeDevice
     constructor(data)
     {
         this.ip = data.ip;
-        this.port = 4003
+        this.port = 4003;
+        this.statusPort = 4001;
         this.leds = parseInt(data.leds);
         this.type = parseInt(data.type);
         this.enabled = false;
@@ -218,7 +223,8 @@ class GoveeDevice
 
     getStatus()
     {
-
+        device.log('Sending status UDP command');
+        udp.send(this.ip, this.statusPort, {msg: { command: 'scan', data: {account_topic: 'reserve'} }});
     }
 
     getRazerModeCommands(enable)
@@ -226,9 +232,10 @@ class GoveeDevice
         let command = base64.encode([0xBB, 0x00, 0x01, 0xB1, enable, 0x0A]);
 
         return [
-            { title: 'Turning on device', command: { msg: { cmd: "turn", data: { value: 1 } } } },
             { title: 'Enabling razer mode', command: { msg: { cmd: "razer", data: { pt: command } } } },
-            { title: 'Enabling razer mode (second time)', command: { msg: { cmd: "razer", data: { pt: command } } } }
+            { title: 'Enabling razer mode', command: { msg: { cmd: "razer", data: { pt: command } } } },
+            { title: 'Enabling razer mode', command: { msg: { cmd: "razer", data: { pt: command } } } },
+            { title: 'Enabling razer mode', command: { msg: { cmd: "razer", data: { pt: command } } } }
         ];
 
         // this.service.broadcast(JSON.stringify({ msg: { cmd: "turn", data: { value: 1 } } }));
@@ -362,6 +369,9 @@ class GoveeDevice
     {
         if (!this.enabled)
         {
+            this.turnOn();
+            this.getStatus();
+
             let commands = this.getRazerModeCommands(true);
             device.log(commands);
             for(const command of commands)
@@ -380,6 +390,19 @@ class GoveeDevice
     {
         // device.log('Sending command: ' + JSON.stringify(command));
         udp.send(this.ip, this.port, command);
+    }
+
+    turnOff()
+    {
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+    }
+
+    turnOn()
+    {
+        device.log('Turning on device on ip: ' + this.ip);
+        this.send({ msg: { cmd: "turn", data: { value: 1 } } });
+        this.send({ msg: { cmd: "turn", data: { value: 1 } } });
     }
 }
 
@@ -439,6 +462,17 @@ class GoveeDeviceUI
 
         this.goveeDevice.sendRGB(RGBData);
         this.device.pause(10);
+    }
+
+    shutDown(turnOffOnShutdown)
+    {
+        let razerCommand = this.goveeDevice.getRazerModeCommands(false)
+        this.goveeDevice.send(razerCommand);
+
+        if (turnOffOnShutdown)
+        {
+            this.goveeDevice.turnOff()
+        }
     }
 
     getRGBFromSubdevices()
