@@ -42,7 +42,7 @@ export function DiscoveryService()
     this.PollInterval = 5000;
 
     this.UdpBroadcastPort = 4003;
-    this.UdpBroadcastAddress = '192.168.100.38' // <-- MAKE SURE YOU CHANGE THIS IP TO YOUR DEVICE'S IP
+    this.UdpBroadcastAddress = '192.168.100.246' // <-- MAKE SURE YOU CHANGE THIS IP TO YOUR DEVICE'S IP
     this.UdpListenPort = 4002;
 
     this.testCommands = [];
@@ -377,6 +377,7 @@ class GoveeDevice
             for(const command of commands)
             {
                 this.send(command.command);
+                device.pause(100);
             }
             this.enabled = true;
         }
@@ -461,7 +462,6 @@ class GoveeDeviceUI
         RGBData = this.getDeviceRGB();
 
         this.goveeDevice.sendRGB(RGBData);
-        this.device.pause(10);
     }
 
     shutDown(turnOffOnShutdown)
