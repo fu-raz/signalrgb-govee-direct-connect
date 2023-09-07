@@ -259,6 +259,9 @@ class GoveeDevice
             case 3:
                 command = this.getSolidColorCommand(colors);
                 break;
+            case 4:
+                command = this.getRazerLegacyCommand(colors);
+                break;
         }
         
         return { msg: command };
@@ -295,6 +298,24 @@ class GoveeDevice
         // Add razer checksum
         colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
         // colorsCommand.push(0);
+
+        return {cmd: "razer", data: { pt: base64.encode(colorsCommand) } };
+    }
+
+    getRazerLegacyCommand(colors)
+    {
+        let razerHeader = [0xBB, 0x00, 0x0E, 0xB0, 0x01, colors.length];
+        
+        let colorsCommand = razerHeader;
+        for(let c = 0; c < colors.length; c++)
+        {
+            // Color is an [r,g,b] array
+            let color = colors[c];
+            colorsCommand = colorsCommand.concat(color);
+        }
+
+        // Add razer checksum
+        colorsCommand.push(0);
 
         return {cmd: "razer", data: { pt: base64.encode(colorsCommand) } };
     }
