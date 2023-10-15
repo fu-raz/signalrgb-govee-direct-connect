@@ -238,21 +238,21 @@ class GoveeController
         this.initialized = false;
     }
 
-    validateDeviceUpdate(leds, type, mirrored)
+    validateDeviceUpdate(leds, type, split)
     {
-        return (leds != this.device.leds || type != this.device.type || mirrored != this.device.mirrored);
+        return (leds != this.device.leds || type != this.device.type || split != this.device.split);
     }
 
-    updateDevice(leds, type, mirrored)
+    updateDevice(leds, type, split)
     {
         this.device.leds = leds;
         this.device.type = type;
-        this.device.mirrored = mirrored;
+        this.device.split = split;
 
         this.save();
 
         service.log(`Changing leds and/or type to ${leds} leds and protocol type ${type}`);
-        service.log('Changing mirrored setting to: ' + mirrored ? 'true' : 'false');
+        service.log('Changing mirrored setting to: ' + split ? 'true' : 'false');
         service.removeController(this);
         service.addController(this);
         service.announceController(this);
@@ -299,7 +299,7 @@ class GoveeDevice
         this.statusPort = 4001;
         this.leds = parseInt(data.leds);
         this.type = parseInt(data.type);
-        this.mirrored = data.mirrored;
+        this.split = parseInt(data.split);
         this.enabled = false;
         this.lastRender = 0;
     }
@@ -510,7 +510,7 @@ class GoveeDevice
             }
         }
 
-        if (this.mirrored)
+        if (this.split == 2)
         {
             colors = colors.concat(colors);
         }
@@ -541,36 +541,47 @@ class GoveeDeviceUI
 {
     constructor(deviceInstance, controller)
     {
-        this.ledCount = 0;
+        this.ledCount = controller.device.leds;
         this.ledNames = [];
         this.ledPositions = [];
 
         this.device = deviceInstance
+        this.subDevices = [];
         this.controller = controller;
         this.log(controller.device);
         this.goveeDevice = new GoveeDevice(this.controller.device);
 
         this.device.addFeature("udp");
         this.device.addFeature("base64");
-        this.device.setName(this.controller.name);
 
-        this.setLedCount(this.controller.device.leds);
+        // Create led map
+        this.createLedMap(this.ledCount);
+
+        if (this.goveeDevice.split == 3)
+        {
+            this.log('This should be two subdevices');
+            this.device.SetIsSubdeviceController(true);
+            for (let num = 1; num <=2; num++)
+            {
+                let subDeviceId = `${this.controller.name} ${num}`
+                this.device.createSubdevice(subDeviceId);
+                this.device.setSubdeviceName(subDeviceId, `${this.controller.name}`);
+                this.device.setSubdeviceImage(subDeviceId, '');
+                this.device.setSubdeviceSize(subDeviceId, this.ledCount, 1);
+                this.device.setSubdeviceLeds(subDeviceId, this.ledNames, this.ledPositions);
+
+                this.subDevices.push(subDeviceId);
+            }
+        } else
+        {
+            this.device.setSize([this.controller.device.leds, 1]);
+            this.device.setControllableLeds(this.ledNames, this.ledPositions);
+        }
     }
 
     log(data)
     {
         this.device.log(data);
-    }
-
-    setLedCount(count)
-    {
-        this.log(`Setting led count to ${count}`);
-        this.ledCount = count;
-    
-        this.createLedMap(count);
-
-        this.device.setSize([count, 1]);
-        this.device.setControllableLeds(this.ledNames, this.ledPositions);
     }
     
     createLedMap(count)
@@ -589,7 +600,14 @@ class GoveeDeviceUI
     {
         let RGBData = [];
 
-        RGBData = this.getDeviceRGB();
+        if (this.goveeDevice.split == 3)
+        {
+            RGBData = this.getRGBFromSubdevices();
+            this.device.log(RGBData.length);
+        } else
+        {
+            RGBData = this.getDeviceRGB();
+        }
 
         this.goveeDevice.sendRGB(RGBData);
     }
@@ -610,16 +628,12 @@ class GoveeDeviceUI
     {
         const RGBData = [];
     
-        for(const subdevice of subdevices){
-            const ledPositions = subdevice.ledPositions;
-    
-            for(let i = 0 ; i < ledPositions.length; i++){
-                const ledPosition = ledPositions[i];
-    
-                const color = device.subdeviceColor(subdevice.id, ledPosition[0], ledPosition[1]);
-                RGBData.push(color[0]);
-                RGBData.push(color[1]);
-                RGBData.push(color[2]);
+        for(const subdeviceId of this.subDevices)
+        {
+            for(let i = 0 ; i < this.ledCount; i++)
+            {
+                const color = this.device.subdeviceColor(subdeviceId, i, 0);
+                RGBData.push(color);
             }
         }
     

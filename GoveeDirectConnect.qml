@@ -329,7 +329,7 @@ Item {
 									}
 									onTextEdited: {
 										// service.log(service);
-										updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue);
+										updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue);
 									}
 								}
 							}
@@ -363,7 +363,7 @@ Item {
 									verticalPadding: 0
 									currentIndex: controller.device.type - 1
 									onActivated: {
-										updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue);
+										updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue);
 									}
 								}
 							}
@@ -391,7 +391,7 @@ Item {
 									onClicked: {
 										if (this.enabled) // dunno if this is needed btw
 										{
-											controller.updateDevice(ledCount.text, lightType.currentValue, mirrored.checked);
+											controller.updateDevice(ledCount.text, lightType.currentValue, splitDevice.currentValue, splitDevice.currentValue);
 										}
 									}
 								}
@@ -424,13 +424,46 @@ Item {
 
 						Row {
 							width: parent.width
+							topPadding: 15
+							spacing: 10
 
-							CheckBox {
-								id: mirrored
-								checked: controller.device.mirrored ? controller.device.mirrored : false
-								text: "Mirror to second device"
-								onClicked: {
-									updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, mirrored.checked);
+							Text {
+								color: theme.primarytextcolor
+								text: "Split device"
+								font.pixelSize: 14
+								font.family: "Poppins"
+							}
+
+							Rectangle {
+								width: 200
+								height: 30
+								radius: 2
+								border.color: "#444444"
+								border.width: 2
+								color: "#141414"
+								
+								ComboBox {
+									y: 0
+									id: splitDevice
+									width: parent.width
+									height: 30
+									font.family: "Poppins"
+									font.bold: true
+									flat: true
+									model: ListModel {
+										ListElement { key: "Single device"; value: 1}
+										ListElement { key: "Duplicate"; value: 2}
+										ListElement { key: "Two devices"; value: 3}
+									}
+									textRole: "key"
+									valueRole: "value"
+									topInset: 0
+									bottomInset: 0
+									verticalPadding: 0
+									currentIndex: controller.device.split - 1
+									onActivated: {
+										updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue);
+									}
 								}
 							}
 						}
