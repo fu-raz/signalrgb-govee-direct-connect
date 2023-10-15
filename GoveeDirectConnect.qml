@@ -19,28 +19,7 @@ Item {
 				width: parent.width
 				wrapMode: Text.WordWrap
 			}
-			Text {
-				color: theme.primarytextcolor
-				text: "If you want to use the test button to test your Govee device right now, make sure you HARD CODE the ip of your device in the GoveeDirectConnect.js file on line 35. Hopefully this will change in the future"
-				font.pixelSize: 16
-				font.family: "Poppins"
-				font.bold: false
-				bottomPadding: 10
-				width: parent.width
-				wrapMode: Text.WordWrap
-			}
-			Text {
-				color: theme.primarytextcolor
-				text: "If you just want to add multiple Govee devices you can enter the IP address, the amount of leds, select the protocol type and press ADD. Changing the led amount or protocol type on a controller doesn't work yet."
-				font.pixelSize: 16
-				font.family: "Poppins"
-				font.bold: false
-				bottomPadding: 10
-				width: parent.width
-				wrapMode: Text.WordWrap
-			}
 			Row {
-				
 				spacing: 5
 				
 				Rectangle {
@@ -52,7 +31,6 @@ Item {
 					border.color: "#444444"
 					border.width: 2
 					color: "#141414"
-					
 
 					TextField {
 						width: 180
@@ -67,7 +45,6 @@ Item {
 						font.pixelSize: 16
 						verticalAlignment: TextInput.AlignVCenter
 						placeholderText: "192.168.0.1"
-						
 						
 						validator: RegularExpressionValidator {
 							regularExpression:  /^((?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.){0,3}(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$/
@@ -158,30 +135,31 @@ Item {
 					}
 				}
 
-				Item{
-					width: 90
-					height: 30
-					Rectangle {
-						width: parent.width
-						height: 30
-						color: "#D65A00"
-						radius: 2
-					}
-					ToolButton {
-						height: 30
-						width: parent.width
-						anchors.verticalCenter: parent.verticalCenter
-						font.family: "Poppins"
-						font.bold: true
-						icon.source: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA40lEQVQ4jZWS4XHCMAxGn3VdICukI3QFWIERYISuQEcII9AVMgIrkBHIBp/4EdEaEwP57nTyydazZBkKubRyyTNblWeqcqktkm/W1nKsEh+AQ/inqgH6ZLYD+ry6JYBSLXB26eLS3qVmKWAEfsN/B6xdBEhmm2T2CeyABji51Hy8CfhTMju4BNBFNf/Kxnh2qQs/O8bYu9QAL/+BS0eX/O4NktkArIuz64jPt1RWEMv8xiGD37XA9Jgvy39ow6VtxPb5FEam71vTeEtmmsAI/CSXuidJuRrgK2uvB4bkkr8JmNUV4XrdYTAY354AAAAASUVORK5CYII="
-						text: "Test"
-						anchors.right: parent.center
-						onClicked: {
-							discovery.testDiscover(discoverIP.text, ledCount.text, lightType.currentValue);
-						}
-					}
-				}
-				Item{
+				// Item {
+				// 	width: 90
+				// 	height: 30
+				// 	Rectangle {
+				// 		width: parent.width
+				// 		height: 30
+				// 		color: "#D65A00"
+				// 		radius: 2
+				// 	}
+				// 	ToolButton {
+				// 		height: 30
+				// 		width: parent.width
+				// 		anchors.verticalCenter: parent.verticalCenter
+				// 		font.family: "Poppins"
+				// 		font.bold: true
+				// 		icon.source: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA40lEQVQ4jZWS4XHCMAxGn3VdICukI3QFWIERYISuQEcII9AVMgIrkBHIBp/4EdEaEwP57nTyydazZBkKubRyyTNblWeqcqktkm/W1nKsEh+AQ/inqgH6ZLYD+ry6JYBSLXB26eLS3qVmKWAEfsN/B6xdBEhmm2T2CeyABji51Hy8CfhTMju4BNBFNf/Kxnh2qQs/O8bYu9QAL/+BS0eX/O4NktkArIuz64jPt1RWEMv8xiGD37XA9Jgvy39ow6VtxPb5FEam71vTeEtmmsAI/CSXuidJuRrgK2uvB4bkkr8JmNUV4XrdYTAY354AAAAASUVORK5CYII="
+				// 		text: "Test"
+				// 		anchors.right: parent.center
+				// 		onClicked: {
+				// 			discovery.testDiscover(discoverIP.text, ledCount.text, lightType.currentValue);
+				// 		}
+				// 	}
+				// }
+
+				Item {
 					Rectangle {
 						width: 90
 						height: 30
@@ -228,31 +206,84 @@ Item {
 						radius: 2
 					}
 
-					Column{
+					Column {
 						id: content
 						width: parent.width
 						padding: 15
-						spacing: 5
+						
 
-						Row{
+						Row {
 							width: parent.width
-							height: childrenRect.height
+							spacing: 10
 
-							Column{
-								id: leftCol
-								width: 260
-								height: childrenRect.height
-								spacing: 10
+							Text {
+								color: theme.primarytextcolor
+								text: controller.name
+								font.pixelSize: 18
+								font.family: "Poppins"
+								font.weight: Font.Bold
+							}
 
-								Text{
-									color: theme.primarytextcolor
-									text: controller.name
-									font.pixelSize: 16
-									font.family: "Poppins"
-									font.weight: Font.Bold
-									bottomPadding: 10
-								}
+						// 	Item {
+						// 		x: parent.width - 60
+						// 		y: 0
 
+						// 		Rectangle {
+									
+						// 			width: 30
+						// 			height: 30
+						// 			color: "#003000"
+						// 			radius: 2
+								
+						// 			ToolButton {
+						// 				id: onOff
+						// 				width: parent.width
+						// 				height: parent.height
+						// 				anchors.verticalCenter: parent.verticalCenter
+						// 				font.family: "Poppins"
+						// 				font.bold: true
+						// 				icon.source: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA6klEQVQ4jZVSURXCMAy8xUEtzMKQgIVZmAUsYAEkbBJAAkjoJGwOLvykvFC6Mu69vL4m1+u1CVCBklHJWONIrbgHbwEleyXHH446JW9KhrxwVFKVXJRsXf7jCUqejXfLBaIVukI+ZrnRuIO3rkqeC5ZLAsGcxvQHvdWutfcnNCIrgAlAq2QnADoAayMy7xEwPG1tUxfWPw57BAEwm51QIBwscqROzb41fYFYhOtagJKtbeKGi/zwYPyLT54sOdZEbOAWi69pHJ2TwRNshC9uWo9bNyQnW/Hwow4ATUEkABgA+FtmAFMjcs/5L6AYHte9jR/tAAAAAElFTkSuQmCC"
+						// 				text: ""
+						// 				anchors.right: parent.center
+						// 				onClicked: {
+						// 					controller.deviceInstance.turnOn();
+						// 				}
+						// 			}
+						// 		}
+						// 	}
+						}
+
+						Row {
+							width: parent.width
+
+							Text {
+								color: theme.primarytextcolor
+								text: "Type: " + (controller.device.sku ? controller.device.sku : "Unknown")
+								font.pixelSize: 14
+								font.family: "Poppins"
+							}
+						}
+
+						Row {
+							width: parent.width
+
+							Text {
+								color: theme.primarytextcolor
+								text: "Device id: " + (controller.device.device ? controller.device.device : "Unknown")
+								font.pixelSize: 14
+								font.family: "Poppins"
+							}
+						}
+
+						Row {
+							width: parent.width
+
+							Text {
+								color: theme.primarytextcolor
+								text: "Firmware: " + (controller.device.bleVersionSoft ? controller.device.bleVersionSoft : "Unknown")
+								font.pixelSize: 14
+								font.family: "Poppins"
+								bottomPadding: 25
 							}
 						}
 
@@ -297,6 +328,10 @@ Item {
 											anchors.bottom: parent.bottom
 										}
 									}
+									onTextEdited: {
+										// service.log(service);
+										updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue);
+									}
 								}
 							}
 							
@@ -328,6 +363,9 @@ Item {
 									bottomInset: 0
 									verticalPadding: 0
 									currentIndex: controller.device.type - 1
+									onActivated: {
+										updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue);
+									}
 								}
 							}
 
@@ -341,6 +379,7 @@ Item {
 								width: 90
 								height: 30
 								ToolButton {
+									id: updateButton
 									enabled: false
 									height: 30
 									width: 90
@@ -351,7 +390,10 @@ Item {
 									text: "Update"
 									anchors.right: parent.center
 									onClicked: {
-										
+										if (this.enabled) // dunno if this is needed btw
+										{
+											controller.updateDevice(ledCount.text, lightType.currentValue);
+										}
 									}
 								}
 							}
@@ -375,7 +417,7 @@ Item {
 									text: "Delete"
 									anchors.right: parent.center
 									onClicked: {
-										discovery.Delete(controller.id);
+										discovery.Delete(controller.ip);
 									}
 								}
 							}
