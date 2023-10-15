@@ -204,6 +204,7 @@ export function DiscoveryService()
         let deviceListJSON = service.getSetting('GoveeDirectConnect', 'devices');
         let forcedGoveeDevices = JSON.parse(deviceListJSON);
 
+        service.log(forcedGoveeDevices);
         if (Object.keys(forcedGoveeDevices).includes(ip))
         {
             delete forcedGoveeDevices[ip];
@@ -237,19 +238,21 @@ class GoveeController
         this.initialized = false;
     }
 
-    validateDeviceUpdate(leds, type)
+    validateDeviceUpdate(leds, type, mirrored)
     {
-        return (leds != this.device.leds || type != this.device.type);
+        return (leds != this.device.leds || type != this.device.type || mirrored != this.device.mirrored);
     }
 
-    updateDevice(leds, type)
+    updateDevice(leds, type, mirrored)
     {
         this.device.leds = leds;
         this.device.type = type;
+        this.device.mirrored = mirrored;
 
         this.save();
 
         service.log(`Changing leds and/or type to ${leds} leds and protocol type ${type}`);
+        service.log('Changing mirrored setting to: ' + mirrored ? 'true' : 'false');
         service.removeController(this);
         service.addController(this);
         service.announceController(this);
@@ -265,7 +268,7 @@ class GoveeController
             forcedGoveeDevices = {};
         }
 
-        forcedGoveeDevices[this.id] = this.device;
+        forcedGoveeDevices[this.ip] = this.device;
         service.saveSetting('GoveeDirectConnect', 'devices', JSON.stringify(forcedGoveeDevices));
     }
 
@@ -274,14 +277,14 @@ class GoveeController
 		if(!this.initialized)
         {
 			this.initialized = true;
-            service.log('Announcing Govee Controller for ip: ' + this.id);
+            service.log('Announcing Govee Controller for ip: ' + this.ip);
 			service.announceController(this);
 		}
 	}
 
     delete()
     {
-        service.log('Trying to delete controller for ip: ' + this.id);
+        service.log('Trying to delete controller for ip: ' + this.ip);
     }
 }
 
@@ -296,6 +299,7 @@ class GoveeDevice
         this.statusPort = 4001;
         this.leds = parseInt(data.leds);
         this.type = parseInt(data.type);
+        this.mirrored = data.mirrored;
         this.enabled = false;
         this.lastRender = 0;
     }
@@ -506,6 +510,10 @@ class GoveeDevice
             }
         }
 
+        if (this.mirrored)
+        {
+            colors = colors.concat(colors);
+        }
         // Send RGB command
         let colorCommand = this.getColorCommand(colors);
         this.send(colorCommand);

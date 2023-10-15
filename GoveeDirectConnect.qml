@@ -210,7 +210,6 @@ Item {
 						id: content
 						width: parent.width
 						padding: 15
-						
 
 						Row {
 							width: parent.width
@@ -392,7 +391,7 @@ Item {
 									onClicked: {
 										if (this.enabled) // dunno if this is needed btw
 										{
-											controller.updateDevice(ledCount.text, lightType.currentValue);
+											controller.updateDevice(ledCount.text, lightType.currentValue, mirrored.checked);
 										}
 									}
 								}
@@ -421,8 +420,19 @@ Item {
 									}
 								}
 							}
+						}
 
-							
+						Row {
+							width: parent.width
+
+							CheckBox {
+								id: mirrored
+								checked: controller.device.mirrored ? controller.device.mirrored : false
+								text: "Mirror to second device"
+								onClicked: {
+									updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, mirrored.checked);
+								}
+							}
 						}
 					}
 				}  
