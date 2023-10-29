@@ -121,8 +121,8 @@ Item {
 					model: ListModel {
 						ListElement { key: "Dreamview"; value: 1}
 						ListElement { key: "Razer"; value: 2}
-						ListElement { key: "Razer (Legacy)"; value: 4}
 						ListElement { key: "Single color"; value: 3}
+						ListElement { key: "Razer (Legacy)"; value: 4}
 					}
 					textRole: "key"
 					valueRole: "value"
@@ -394,8 +394,8 @@ Item {
 							model: ListModel {
 								ListElement { key: "Dreamview"; value: 1}
 								ListElement { key: "Razer"; value: 2}
-								ListElement { key: "Razer (Legacy)"; value: 4}
 								ListElement { key: "Single color"; value: 3}
+								ListElement { key: "Razer (Legacy)"; value: 4}
 							}
 							textRole: "key"
 							valueRole: "value"
