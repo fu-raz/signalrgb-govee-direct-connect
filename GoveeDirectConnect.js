@@ -13,7 +13,7 @@ export function ControllableParameters()
 		{"property":"lightingMode", "group":"settings", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced"], "default":"Canvas"},
 		{"property":"forcedColor", "group":"settings", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
 		{"property":"turnOff", "group":"settings", "label":"On shutdown", "type":"combobox", "values":["Do nothing", "Single color", "Turn device off"], "default":"Turn device off"},
-        {"property":"turnOffColor", "group":"settings", "label":"Turn Off Color", "min":"0", "max":"360", "type":"color", "default":"#8000FF"}
+        {"property":"turnOffColor", "group":"settings", "label":"Shutdown Color", "min":"0", "max":"360", "type":"color", "default":"#8000FF"}
 	];
 }
 
@@ -502,7 +502,7 @@ class GoveeDevice
         // }
 
         // Get status every 10 seconds
-        if (Date.now() - this.lastRender > 1000)
+        if (Date.now() - this.lastRender > 10000)
         {
             // Check if we have the device data already
             if (this.ip == this.id)
@@ -574,6 +574,8 @@ class GoveeDevice
     turnOff()
     {
         this.send(this.getRazerModeCommand(false));
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        // Sending some extra packets
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
         this.lastRender = 0;
     }
