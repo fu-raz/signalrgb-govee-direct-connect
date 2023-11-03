@@ -30,7 +30,8 @@ export function Initialize()
 
 export function Render()
 {
-    if (Date.now() - lastRender > 10000)
+    let now = Date.now();
+    if (now - lastRender > 10000)
     {
         if (controller.changed)
         {
@@ -38,8 +39,9 @@ export function Render()
             goveeUI.updateGoveeDevice(controller.device);
             controller.changed = false;
         }
+        lastRender = now;
     }
-    goveeUI.render(lightingMode, forcedColor);
+    goveeUI.render(lightingMode, forcedColor, now);
 }
 
 export function Shutdown(suspend)
@@ -182,7 +184,6 @@ export function DiscoveryService()
                 {
                     if (goveeData[key] != currentDeviceData[key])
                     {
-                        service.log(`${key} was different. Old data: ${currentDeviceData[key]}, new data: ${goveeData[key]}`);
                         shouldUpdate = true;
                         break;
                     }
@@ -204,7 +205,7 @@ export function DiscoveryService()
                         {
                             controller.obj.device = newDeviceData;
                             controller.obj.changed = true;
-                            service.log('Found controller and changed data');
+                            service.log('Found controller and changed data to:');
                             service.log(controller.obj);
                         }
                     }
@@ -323,7 +324,7 @@ class GoveeDevice
         this.pt = data.hasOwnProperty('pt') ? data.pt : null;
         // PT Data uwABsgAI = razer off, uwABsgEJ = razer on
         this.lastRender = 0;
-        this.enabled = false;
+        this.enabled = true;
 
         this.lastSingleColor = '';
     }
@@ -440,51 +441,6 @@ class GoveeDevice
         
     }
 
-    getTestColors(amount)
-    {
-        let colors = [];
-
-        for (let x = 1; x <= amount; x++)
-        {
-            if (x == 1 || x == amount)
-            {
-                colors.push([255,0,0]);
-            } else
-            {
-                colors.push([255,255,255]);
-            }
-        }
-
-        return colors;
-    }
-
-    getTests()
-    {
-        let commands = [];
-
-        // Add the Razer mode commands
-        commands = commands.concat( this.getRazerModeCommands(true) );
-
-        let minLedAmount = 1;
-        let maxLedAmount = this.leds;
-
-        if (this.type == 2) // Razer
-        {
-            minLedAmount = 4;
-        } else if (this.type == 3)
-        {
-            maxLedAmount = 1;
-        }
-
-        for (let ledAmount = minLedAmount; ledAmount <= maxLedAmount; ledAmount++)
-        {
-            let colors = this.getTestColors(ledAmount);
-            commands.push( { title: `Testing ${ledAmount} colors`, command: this.getColorCommand(colors) } );
-        }
-
-        return commands;
-    }
-
     calculateXorChecksum(packet) {
         let checksum = 0;
         for (let i = 0; i < packet.length; i++) {
@@ -493,56 +449,55 @@ class GoveeDevice
         return checksum;
     }
 
-    sendRGB(colors)
+    sendRGB(colors, now)
     {
-        // if (!this.enabled && this.type !== 3)
-        // {
-        //     this.send(this.getRazerModeCommand(true));
-        //     this.enabled = true;
-        // }
-
-        // Get status every 10 seconds
-        if (Date.now() - this.lastRender > 10000)
+        if (this.enabled)
         {
-            // Check if we have the device data already
-            if (this.ip == this.id)
+            if (this.split == 2)
             {
-                this.getDeviceData();
+                colors = colors.concat(colors);
             }
-
-            // Turn device on if it's off
-            if (!this.onOff)
+    
+            // Send RGB command first, then do calculations and stuff later
+            let colorCommand = this.getColorCommand(colors);
+            this.send(colorCommand);
+    
+            // Get status every 10 seconds
+            if (now - this.lastRender > 10000)
             {
-                this.turnOn();
-            }
-
-            // If not single color
-            if (this.type !== 3)
-            {
-                if (this.pt !== 'uwABsgEJ')
+                // Check if we have the device data already
+                if (this.ip == this.id)
                 {
-                    device.log('Sending `razer on` command');
-                    this.send(this.getRazerModeCommand(true));
+                    // There's no unique ID, so we need to get that data
+                    this.getDeviceData();
                 }
+    
+                // Turn device on if it's off
+                if (!this.onOff)
+                {
+                    device.log('Sending `turn on` command');
+                    this.turnOn();
+                }
+    
+                // If not single color
+                if (this.type !== 3)
+                {
+                    if (this.pt !== 'uwABsgEJ')
+                    {
+                        device.log('Sending `razer on` command');
+                        this.send(this.getRazerModeCommand(true));
+                    }
+                }
+    
+                this.getStatus();
+                this.lastRender = now;
             }
-
-            this.getStatus();
-            this.lastRender = Date.now();
         }
-
-        // If we duplicate (mirror) the colors to the second device
-        if (this.split == 2)
-        {
-            colors = colors.concat(colors);
-        }
-        // Send RGB command
-        let colorCommand = this.getColorCommand(colors);
-        this.send(colorCommand);
     }
 
-    singleColor(color)
+    singleColor(color, now)
     {
-        if (Date.now() - this.lastRender > 1000)
+        if (now - this.lastRender > 10000)
         {
             // Turn off Razer mode
             if (this.pt == 'uwABsgEJ')
@@ -552,7 +507,7 @@ class GoveeDevice
             }
 
             this.getStatus();
-            this.lastRender = Date.now();
+            this.lastRender = now;
         }
 
         let jsonColor = JSON.stringify(color);
@@ -573,9 +528,8 @@ class GoveeDevice
 
     turnOff()
     {
+        this.enabled = false;
         this.send(this.getRazerModeCommand(false));
-        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
-        // Sending some extra packets
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
         this.lastRender = 0;
     }
@@ -651,13 +605,8 @@ class GoveeDeviceUI
         }
     }
 
-    render(lightingMode, forcedColor)
+    render(lightingMode, forcedColor, now)
     {
-        if (Date.now() - this.lastRender > 5000)
-        {
-            this.lastRender = Date.now();
-        }
-
         switch(lightingMode)
         {
             case "Canvas":
@@ -672,10 +621,10 @@ class GoveeDeviceUI
                     RGBData = this.getDeviceRGB();
                 }
 
-                this.goveeDevice.sendRGB(RGBData);
+                this.goveeDevice.sendRGB(RGBData, now);
                 break;
             case "Forced":
-                this.goveeDevice.singleColor(this.hexToRGB(forcedColor));
+                this.goveeDevice.singleColor(this.hexToRGB(forcedColor), now);
                 break;
         }
         
@@ -697,8 +646,6 @@ class GoveeDeviceUI
                 this.goveeDevice.turnOff();
                 break;
         }
-
-        this.goveeDevice.enabled = false;
     }
 
     getRGBFromSubdevices()
