@@ -47,7 +47,9 @@ export function Render()
 
 export function Shutdown()
 {
+    device.log('Shutting down');
 	goveeUI.shutDown(turnOff, shutDownColor);
+    device.pause(5000);
 }
 
 export function Validate()
@@ -450,8 +452,7 @@ class GoveeDevice
                 colors = colors.concat(colors);
             }
     
-            // Get status every 5 seconds
-            if (now - this.lastRender > 30000)
+            if (now - this.lastRender > 10000)
             {
                 // Check if we have the device data already
                 if (this.ip == this.id)
@@ -486,9 +487,6 @@ class GoveeDevice
             // Send RGB command first, then do calculations and stuff later
             let colorCommand = this.getColorCommand(colors);
             this.send(colorCommand);
-        } else
-        {
-            device.log('device disabled');
         }
     }
 
@@ -526,8 +524,17 @@ class GoveeDevice
     turnOff()
     {
         this.enabled = false;
+        device.log('Disabled device, now sending razer off command');
         this.send(this.getRazerModeCommand(false));
+        this.send(this.getRazerModeCommand(false));
+        this.send(this.getRazerModeCommand(false));
+        this.send(this.getRazerModeCommand(false));
+        device.log('Sent razer off command, now turning off');
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        device.log('Sent turn off command');
         this.lastRender = 0;
     }
 
@@ -631,9 +638,6 @@ class GoveeDeviceUI
 
     shutDown(shutDownMode, shutDownColor)
     {
-        let razerCommand = this.goveeDevice.getRazerModeCommand(false)
-        this.goveeDevice.send(razerCommand);
-
         switch(shutDownMode)
         {
             case "Do nothing":
@@ -642,6 +646,7 @@ class GoveeDeviceUI
                 this.goveeDevice.singleColor(this.hexToRGB(shutDownColor));
                 break;
             case "Turn device off":
+                this.device.log('Shutting down and turning device off');
                 this.goveeDevice.turnOff();
                 break;
         }
