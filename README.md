@@ -1,6 +1,6 @@
 # Govee Direct Connect
 
-[![Add To Installation](https://marketplace.signalrgb.com/resources/add-extension-256.png 'Add to My SignalRGB Installation')](signalrgb://addon/install?url=https://github.com/fu-raz/signalrgb-govee-direct-connect)
+[![Click here to add this repo to SignalRGB](https://github.com/SRGBmods/qmk-plugins/blob/main/_images/add-to-signalrgb.png)](https://srgbmods.net/s?p=addon/install?url=https://github.com/fu-raz/signalrgb-govee-direct-connect)
 
 ## Getting started
 This SignalRGB Addon allows you to add Govee devices via a direct IP connection. You control the amount of leds of the device and what protocol is used to communicate with the device.
