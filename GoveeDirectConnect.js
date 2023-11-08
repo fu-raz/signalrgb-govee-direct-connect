@@ -1,10 +1,11 @@
-import base64 from "@SignalRGB/base64";
+// import base64 from "@SignalRGB/base64";
+import {encode, decode} from "@SignalRGB/base64";
 
 export function Name() { return "Govee Direct Connect"; }
-export function Version() { return "0.0.2"; }
+export function Version() { return "0.0.5"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }
-export function Size() { return [22, 1]; }
+export function Size() { return [1, 1]; }
 export function DefaultPosition() {return [0, 70]; }
 export function DefaultScale(){return 1.0;}
 export function ControllableParameters()
@@ -13,7 +14,7 @@ export function ControllableParameters()
 		{"property":"lightingMode", "group":"settings", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced"], "default":"Canvas"},
 		{"property":"forcedColor", "group":"settings", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
 		{"property":"turnOff", "group":"settings", "label":"On shutdown", "type":"combobox", "values":["Do nothing", "Single color", "Turn device off"], "default":"Turn device off"},
-        {"property":"turnOffColor", "group":"settings", "label":"Shutdown Color", "min":"0", "max":"360", "type":"color", "default":"#8000FF"}
+        {"property":"shutDownColor", "group":"settings", "label":"Shutdown Color", "min":"0", "max":"360", "type":"color", "default":"#8000FF"}
 	];
 }
 
@@ -44,9 +45,14 @@ export function Render()
     goveeUI.render(lightingMode, forcedColor, now);
 }
 
-export function Shutdown(suspend)
+export function Shutdown()
 {
-	goveeUI.shutDown(turnOff, turnOffColor);
+	goveeUI.shutDown(turnOff, shutDownColor);
+}
+
+export function Validate()
+{
+    return true;
 }
 
 export function DiscoveryService()
@@ -73,15 +79,6 @@ export function DiscoveryService()
         this.devicesLoaded = false;
 	};
 
-    this.testDiscover = function(ip, leds, type)
-    {
-        // This should change the IP:
-        // this.UdpBroadcastAddress = ip;
-
-        let goveeInstance = new GoveeDevice({ip: ip, leds: leds ? leds : 1, type: type ? type : 3});
-        this.testCommands = goveeInstance.getTests();
-    }
-
     this.forceDiscover = function(ip, leds, type)
     {
         let goveeLightData = { ip: ip, leds: parseInt(leds), type: parseInt(type) };
@@ -101,21 +98,6 @@ export function DiscoveryService()
         if(savedDeviceData !== undefined)
         {
             this.discoveredDeviceData = JSON.parse(savedDeviceData);
-        }
-
-        let oldData = service.getSetting('goveeForced', 'devices');
-        if (oldData !== undefined)
-        {
-            service.log('Found old data');
-            let conversionData = JSON.parse(oldData);
-            for (let oldDevice of conversionData)
-            {
-                if (!this.discoveredDeviceData.hasOwnProperty(oldDevice.ip))
-                {
-                    this.discoveredDeviceData[oldDevice.ip] = oldDevice;
-                }
-            }
-            service.removeSetting('goveeForced', 'devices');
         }
         
 		if(Object.keys(this.discoveredDeviceData).length > 0)
@@ -138,8 +120,12 @@ export function DiscoveryService()
                 if (!Object.keys(this.GoveeDeviceControllers).includes(savedIP))
                 {
                     service.log('Adding new Govee controller for ' + savedIP);
+                    let deviceData = this.discoveredDeviceData[savedIP];
 
-                    let goveeController = new GoveeController(this.discoveredDeviceData[savedIP]);
+                    if (deviceData.hasOwnProperty('onOff')) delete deviceData.onOff;
+                    if (deviceData.hasOwnProperty('pt')) delete deviceData.pt;
+
+                    let goveeController = new GoveeController(deviceData);
                     this.GoveeDeviceControllers[savedIP] = goveeController;
                     service.addController(goveeController);
                 }
@@ -160,11 +146,11 @@ export function DiscoveryService()
             if (!this.devicesLoaded || force === true)
             {
                 this.loadForcedDevices();
-            }
 
-            for(const controller of service.controllers)
-            {
-                controller.obj.update();
+                for(const controller of service.controllers)
+                {
+                    controller.obj.update();
+                }
             }
 		}
     }
@@ -182,7 +168,7 @@ export function DiscoveryService()
                 let shouldUpdate = false;
                 for (let key of Object.keys(goveeData))
                 {
-                    if (goveeData[key] != currentDeviceData[key])
+                    if (!currentDeviceData.hasOwnProperty(key) || goveeData[key] != currentDeviceData[key])
                     {
                         shouldUpdate = true;
                         break;
@@ -322,6 +308,7 @@ class GoveeDevice
         this.split = parseInt(data.split);
         this.onOff = data.hasOwnProperty('onOff') ? data.onOff : false;
         this.pt = data.hasOwnProperty('pt') ? data.pt : null;
+        this.sku = data.hasOwnProperty('sku') ? data.sku : null;
         // PT Data uwABsgAI = razer off, uwABsgEJ = razer on
         this.lastRender = 0;
         this.enabled = true;
@@ -329,9 +316,14 @@ class GoveeDevice
         this.lastSingleColor = '';
     }
 
+    getName()
+    {
+        return `Govee ${this.sku ? this.sku : 'device'} on ${this.ip}`;
+    }
+
     getStatus()
     {
-        udp.send(this.ip, this.port, {
+        udp.send(this.ip, this.statusPort, {
             msg: {
                 cmd: "status",
                 data: {}
@@ -347,7 +339,7 @@ class GoveeDevice
 
     getRazerModeCommand(enable)
     {
-        let command = base64.encode([0xBB, 0x00, 0x01, 0xB1, enable, 0x0A]);
+        let command = encode([0xBB, 0x00, 0x01, 0xB1, enable, 0x0A]);
         return { msg: { cmd: "razer", data: { pt: command } } };
     }
 
@@ -388,7 +380,7 @@ class GoveeDevice
 
         colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
 
-        return {cmd: "razer", data: { pt: base64.encode(colorsCommand) } };
+        return {cmd: "razer", data: { pt: encode(colorsCommand) } };
     }
 
     getRazerCommand(colors)
@@ -407,7 +399,7 @@ class GoveeDevice
         colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
         // colorsCommand.push(0);
 
-        return {cmd: "razer", data: { pt: base64.encode(colorsCommand) } };
+        return {cmd: "razer", data: { pt: encode(colorsCommand) } };
     }
 
     getRazerLegacyCommand(colors)
@@ -425,7 +417,7 @@ class GoveeDevice
         // Add razer checksum
         colorsCommand.push(0);
 
-        return {cmd: "razer", data: { pt: base64.encode(colorsCommand) } };
+        return {cmd: "razer", data: { pt: encode(colorsCommand) } };
     }
 
     getSolidColorCommand(colors)
@@ -458,12 +450,8 @@ class GoveeDevice
                 colors = colors.concat(colors);
             }
     
-            // Send RGB command first, then do calculations and stuff later
-            let colorCommand = this.getColorCommand(colors);
-            this.send(colorCommand);
-    
-            // Get status every 10 seconds
-            if (now - this.lastRender > 10000)
+            // Get status every 5 seconds
+            if (now - this.lastRender > 30000)
             {
                 // Check if we have the device data already
                 if (this.ip == this.id)
@@ -477,6 +465,7 @@ class GoveeDevice
                 {
                     device.log('Sending `turn on` command');
                     this.turnOn();
+                    this.onOff = 1;
                 }
     
                 // If not single color
@@ -486,12 +475,20 @@ class GoveeDevice
                     {
                         device.log('Sending `razer on` command');
                         this.send(this.getRazerModeCommand(true));
+                        this.pt = 'uwABsgEJ';
                     }
                 }
     
                 this.getStatus();
                 this.lastRender = now;
             }
+
+            // Send RGB command first, then do calculations and stuff later
+            let colorCommand = this.getColorCommand(colors);
+            this.send(colorCommand);
+        } else
+        {
+            device.log('device disabled');
         }
     }
 
@@ -555,6 +552,8 @@ class GoveeDeviceUI
 
         this.device.addFeature("udp");
         this.device.addFeature("base64");
+
+        this.device.setName(this.goveeDevice.getName())
 
         this.lastRender = 0;
 
