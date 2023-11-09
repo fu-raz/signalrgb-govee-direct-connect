@@ -202,9 +202,6 @@ export function DiscoveryService()
                             service.log(controller.obj);
                         }
                     }
-                } else
-                {
-                    device.log(`Data received for ${value.ip}: ${goveeResponse.msg.cmd}`);
                 }
             } else {
                 service.log('No controller found for ' + value.ip);
@@ -218,7 +215,6 @@ export function DiscoveryService()
         let deviceListJSON = service.getSetting('GoveeDirectConnect', 'devices');
         let forcedGoveeDevices = JSON.parse(deviceListJSON);
 
-        service.log(forcedGoveeDevices);
         if (Object.keys(forcedGoveeDevices).includes(ip))
         {
             delete forcedGoveeDevices[ip];
@@ -538,16 +534,6 @@ class GoveeDevice
 
     send(command)
     {
-        switch (command.msg.cmd)
-        {
-            case 'status':
-            case 'devStatus':
-            case 'turn':
-                device.log('Sending command: ' + JSON.stringify(command) + ' to ' + this.ip + ':' + this.port);
-                break;
-
-        }
-
         udp.send(this.ip, this.port, command);
     }
 
