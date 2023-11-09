@@ -159,6 +159,8 @@ export function DiscoveryService()
 
     this.Discovered = function(value)
     {
+        if (!value) return;
+        
         let goveeResponse = JSON.parse(value.response);
         if (goveeResponse.msg.cmd == 'scan' || 
             goveeResponse.msg.cmd == 'status' || 
