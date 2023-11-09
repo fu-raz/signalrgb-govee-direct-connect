@@ -160,7 +160,9 @@ export function DiscoveryService()
     this.Discovered = function(value)
     {
         let goveeResponse = JSON.parse(value.response);
-        if (goveeResponse.msg.cmd == 'scan' || goveeResponse.msg.cmd == 'status')
+        if (goveeResponse.msg.cmd == 'scan' || 
+            goveeResponse.msg.cmd == 'status' || 
+            goveeResponse.msg.cmd == 'devStatus')
         {
             let goveeData = goveeResponse.msg.data;
             if (this.GoveeDeviceControllers.hasOwnProperty(value.ip))
@@ -170,6 +172,7 @@ export function DiscoveryService()
                 let shouldUpdate = false;
                 for (let key of Object.keys(goveeData))
                 {
+                    if (key =='color') continue;
                     if (!currentDeviceData.hasOwnProperty(key) || goveeData[key] != currentDeviceData[key])
                     {
                         shouldUpdate = true;
@@ -197,6 +200,9 @@ export function DiscoveryService()
                             service.log(controller.obj);
                         }
                     }
+                } else
+                {
+                    device.log(`Data received for ${value.ip}: ${goveeResponse.msg.cmd}`);
                 }
             } else {
                 service.log('No controller found for ' + value.ip);
@@ -313,6 +319,8 @@ class GoveeDevice
         this.sku = data.hasOwnProperty('sku') ? data.sku : null;
         // PT Data uwABsgAI = razer off, uwABsgEJ = razer on
         this.lastRender = 0;
+        this.lastStatus = 0;
+
         this.enabled = true;
 
         this.lastSingleColor = '';
@@ -325,7 +333,15 @@ class GoveeDevice
 
     getStatus()
     {
-        udp.send(this.ip, this.statusPort, {
+        udp.send(this.ip, this.port, {
+            msg: {
+                cmd: "devStatus",
+                data: {}
+            }
+        });
+
+        
+        udp.send(this.ip, this.port, {
             msg: {
                 cmd: "status",
                 data: {}
@@ -341,7 +357,7 @@ class GoveeDevice
 
     getRazerModeCommand(enable)
     {
-        let command = encode([0xBB, 0x00, 0x01, 0xB1, enable, 0x0A]);
+        let command = encode([0xBB, 0x00, 0x01, 0xB1, enable, enable ? 0x0A : 0x0B]);
         return { msg: { cmd: "razer", data: { pt: command } } };
     }
 
@@ -466,7 +482,6 @@ class GoveeDevice
                 {
                     device.log('Sending `turn on` command');
                     this.turnOn();
-                    this.onOff = 1;
                 }
     
                 // If not single color
@@ -476,12 +491,16 @@ class GoveeDevice
                     {
                         device.log('Sending `razer on` command');
                         this.send(this.getRazerModeCommand(true));
-                        this.pt = 'uwABsgEJ';
                     }
                 }
-    
-                this.getStatus();
+                
                 this.lastRender = now;
+            }
+
+            if (now - this.lastStatus > 5000)
+            {
+                this.getStatus();
+                this.lastStatus = now;
             }
 
             // Send RGB command first, then do calculations and stuff later
@@ -517,25 +536,29 @@ class GoveeDevice
 
     send(command)
     {
-        // device.log('Sending command: ' + JSON.stringify(command));
+        switch (command.msg.cmd)
+        {
+            case 'status':
+            case 'devStatus':
+            case 'turn':
+                device.log('Sending command: ' + JSON.stringify(command) + ' to ' + this.ip + ':' + this.port);
+                break;
+
+        }
+
         udp.send(this.ip, this.port, command);
     }
 
     turnOff()
     {
         this.enabled = false;
+        this.pt = "";
         device.log('Disabled device, now sending razer off command');
-        this.send(this.getRazerModeCommand(false));
-        this.send(this.getRazerModeCommand(false));
-        this.send(this.getRazerModeCommand(false));
         this.send(this.getRazerModeCommand(false));
         device.log('Sent razer off command, now turning off');
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
-        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
-        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
-        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
         device.log('Sent turn off command');
-        this.lastRender = 0;
+        this.onOff = 0;
     }
 
     turnOn()
@@ -645,7 +668,7 @@ class GoveeDeviceUI
             case "Single color":
                 this.goveeDevice.singleColor(this.hexToRGB(shutDownColor));
                 break;
-            case "Turn device off":
+            default:
                 this.device.log('Shutting down and turning device off');
                 this.goveeDevice.turnOff();
                 break;
