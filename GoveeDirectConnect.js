@@ -542,9 +542,20 @@ class GoveeDevice
         this.enabled = false;
         this.pt = "";
         device.log('Disabled device, now sending razer off command');
-        this.send(this.getRazerModeCommand(false));
         device.log('Sent razer off command, now turning off');
-        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        device.log('Lets blast this device with turn off commands')
+
+        for (let i = 0; i < 3; i++)
+        {
+            this.send(this.getRazerModeCommand(false));
+            device.pause(10);
+        }
+        for (let i = 0; i < 3; i++)
+        {
+            this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+            device.pause(10);
+        }
+
         device.log('Sent turn off command');
         this.onOff = 0;
     }
