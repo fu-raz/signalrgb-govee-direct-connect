@@ -202,6 +202,9 @@ export function DiscoveryService()
                             service.log(controller.obj);
                         }
                     }
+                } else {
+                    // service.log(value.ip + ': ' + goveeResponse.msg.cmd);
+                    // service.log(goveeData);
                 }
             } else {
                 service.log('No controller found for ' + value.ip);
@@ -315,9 +318,12 @@ class GoveeDevice
         this.onOff = data.hasOwnProperty('onOff') ? data.onOff : false;
         this.pt = data.hasOwnProperty('pt') ? data.pt : null;
         this.sku = data.hasOwnProperty('sku') ? data.sku : null;
+        this.brightness = data.hasOwnProperty('brightness') ? data.brightness : null;
+        this.firmware = data.hasOwnProperty('bleVersionSoft') ? data.bleVersionSoft : null;
         // PT Data uwABsgAI = razer off, uwABsgEJ = razer on
         this.lastRender = 0;
         this.lastStatus = 0;
+        this.lastDeviceDataCheck = Date.now();
 
         this.enabled = true;
 
@@ -329,16 +335,33 @@ class GoveeDevice
         return `Govee ${this.sku ? this.sku : 'device'} on ${this.ip}`;
     }
 
+    printDetails()
+    {
+        device.log(`SKU: ${this.sku}`);
+        device.log(`Firmware: ${this.firmware}`);
+        device.log(`IP address: ${this.ip}`);
+        device.log(`Total LED count: ${this.leds}`);
+        switch(this.type)
+        {
+            // Dreamview mode
+            case 1:
+                device.log(`Protocol: Dreamview`);
+                break;
+            case 2:
+                device.log(`Protocol: Razer`);
+                break;
+            case 3:
+                device.log(`Protocol: Solid color`);
+                break;
+            case 4:
+                device.log(`Protocol: Legacy Razer protocol`);
+                break;
+        }
+        device.log(`Split: ${this.split ? 'yes' : 'no'}`);
+    }
+
     getStatus()
     {
-        udp.send(this.ip, this.port, {
-            msg: {
-                cmd: "devStatus",
-                data: {}
-            }
-        });
-
-        
         udp.send(this.ip, this.port, {
             msg: {
                 cmd: "status",
@@ -465,8 +488,17 @@ class GoveeDevice
             {
                 colors = colors.concat(colors);
             }
+
+            // Every 60 minutes check if the device data has updated (like firmware changes)
+            if (now - this.lastDeviceDataCheck > 60 * 60 * 1000)
+            {
+                device.log('Updating device data');
+                this.getDeviceData();
+                this.lastDeviceDataCheck = now;
+            }
     
-            if (now - this.lastRender > 10000)
+            // Every 10 seconds check if we need to enable razer
+            if (now - this.lastRender > 10 * 1000)
             {
                 // Check if we have the device data already
                 if (this.ip == this.id)
@@ -495,7 +527,8 @@ class GoveeDevice
                 this.lastRender = now;
             }
 
-            if (now - this.lastStatus > 5000)
+            // Every 5 seconds check the status
+            if (now - this.lastStatus > 5 * 1000)
             {
                 this.getStatus();
                 this.lastStatus = now;
@@ -614,6 +647,7 @@ class GoveeDeviceUI
     updateGoveeDevice(deviceData)
     {
         this.goveeDevice = new GoveeDevice(deviceData);
+        this.goveeDevice.printDetails();
     }
 
     log(data)
