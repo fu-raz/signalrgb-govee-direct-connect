@@ -3,7 +3,7 @@ import {encode, decode} from "@SignalRGB/base64";
 import goveeProducts from "./govee-products.js";
 
 export function Name() { return "Govee Direct Connect"; }
-export function Version() { return "1.0.0"; }
+export function Version() { return "1.1.0"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }
 export function Size() { return [1, 1]; }
