@@ -429,6 +429,7 @@ Item {
 								ListElement { key: "Single device"; value: 1}
 								ListElement { key: "Duplicate"; value: 2}
 								ListElement { key: "Two devices"; value: 3}
+								ListElement { key: "Custom components"; value: 4}
 							}
 							textRole: "key"
 							valueRole: "value"

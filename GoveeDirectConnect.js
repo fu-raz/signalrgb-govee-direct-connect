@@ -3,7 +3,7 @@ import {encode, decode} from "@SignalRGB/base64";
 import goveeProducts from "./govee-products.js";
 
 export function Name() { return "Govee Direct Connect"; }
-export function Version() { return "1.1.0"; }
+export function Version() { return "1.2.0"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }
 export function Size() { return [1, 1]; }
@@ -370,6 +370,9 @@ class GoveeDevice
             case 3:
                 device.log(`Split: Two devices`);
                 break;
+            case 4:
+                device.log(`Split: Custom components`);
+                break;
         }
     }
 
@@ -653,25 +656,31 @@ class GoveeDeviceUI
         // Create led map
         this.createLedMap(this.ledCount);
 
-        if (this.goveeDevice.split == 3)
+        switch(this.goveeDevice.split)
         {
-            this.log('This should be two subdevices');
-            this.device.SetIsSubdeviceController(true);
-            for (let num = 1; num <=2; num++)
-            {
-                let subDeviceId = `${this.controller.name} ${num}`
-                this.device.createSubdevice(subDeviceId);
-                this.device.setSubdeviceName(subDeviceId, `${this.controller.name}`);
-                this.device.setSubdeviceImage(subDeviceId, '');
-                this.device.setSubdeviceSize(subDeviceId, this.ledCount, 1);
-                this.device.setSubdeviceLeds(subDeviceId, this.ledNames, this.ledPositions);
-
-                this.subDevices.push(subDeviceId);
-            }
-        } else
-        {
-            this.device.setSize([this.controller.device.leds, 1]);
-            this.device.setControllableLeds(this.ledNames, this.ledPositions);
+            case 3:
+                this.log('This should be two subdevices');
+                this.device.SetIsSubdeviceController(true);
+                for (let num = 1; num <=2; num++)
+                {
+                    let subDeviceId = `${this.controller.name} ${num}`
+                    this.device.createSubdevice(subDeviceId);
+                    this.device.setSubdeviceName(subDeviceId, `${this.controller.name}`);
+                    this.device.setSubdeviceImage(subDeviceId, '');
+                    this.device.setSubdeviceSize(subDeviceId, this.ledCount, 1);
+                    this.device.setSubdeviceLeds(subDeviceId, this.ledNames, this.ledPositions);
+    
+                    this.subDevices.push(subDeviceId);
+                }
+                break;
+            case 4:
+                this.device.SetLedLimit(this.ledCount);
+		        this.device.addChannel(this.goveeDevice.sku, this.ledCount);
+                break;
+            default:
+                this.device.setSize([this.controller.device.leds, 1]);
+                this.device.setControllableLeds(this.ledNames, this.ledPositions);
+                break;
         }
     }
 
@@ -711,13 +720,20 @@ class GoveeDeviceUI
             case "Canvas":
                 let RGBData = [];
 
-                if (this.goveeDevice.split == 3)
+                switch(this.goveeDevice.split)
                 {
-                    RGBData = this.getRGBFromSubdevices();
-                    this.device.log(RGBData.length);
-                } else
-                {
-                    RGBData = this.getDeviceRGB();
+                    case 3:
+                        RGBData = this.getRGBFromSubdevices();
+                        this.device.log(RGBData.length);
+                        break;
+                    case 4:
+                        if (this.device.getLedCount() == 0) return;
+                        const channel = this.device.channel(this.goveeDevice.sku);
+                        RGBData = this.parseChannelColors(channel.getColors('Inline'));
+                        break;
+                    default:
+                        RGBData = this.getDeviceRGB();
+                        break;
                 }
 
                 this.goveeDevice.sendRGB(RGBData, now);
@@ -743,6 +759,20 @@ class GoveeDeviceUI
                 this.goveeDevice.turnOff();
                 break;
         }
+    }
+
+    parseChannelColors(inlineColors)
+    {
+        let RGBData = [];
+        for (let i = 0; i < inlineColors.length; i = i + 3)
+        {
+            RGBData.push([
+                inlineColors[i],
+                inlineColors[i+1],
+                inlineColors[i+2]
+            ]);
+        }
+        return RGBData;
     }
 
     getRGBFromSubdevices()
