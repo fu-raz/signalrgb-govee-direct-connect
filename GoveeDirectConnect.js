@@ -772,6 +772,15 @@ class GoveeDeviceUI
                 inlineColors[i+2]
             ]);
         }
+
+        let totalColors = RGBData.length;
+        if (totalColors < this.ledCount)
+        {
+            for (let i = totalColors; i < this.ledCount; i++)
+            {
+                RGBData.push([255,255,255]);
+            }
+        }
         return RGBData;
     }
 
