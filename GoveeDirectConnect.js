@@ -2,7 +2,7 @@
 import {encode, decode} from "@SignalRGB/base64";
 
 export function Name() { return "Govee Direct Connect"; }
-export function Version() { return "0.0.5"; }
+export function Version() { return "1.0.0"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }
 export function Size() { return [1, 1]; }
@@ -357,7 +357,18 @@ class GoveeDevice
                 device.log(`Protocol: Legacy Razer protocol`);
                 break;
         }
-        device.log(`Split: ${this.split ? 'yes' : 'no'}`);
+        switch(this.split)
+        {
+            case 1:
+                device.log(`Split: Single device`);
+                break;
+            case 2:
+                device.log(`Split: Mirrored`);
+                break;
+            case 3:
+                device.log(`Split: Two devices`);
+                break;
+        }
     }
 
     getStatus()
@@ -572,21 +583,26 @@ class GoveeDevice
 
     turnOff()
     {
+        // I wish we didn't have to brute force it like this haha!
         this.enabled = false;
         this.pt = "";
         device.log('Disabled device, now sending razer off command');
         device.log('Sent razer off command, now turning off');
         device.log('Lets blast this device with turn off commands')
+        
+        for (let i = 0; i < 3; i++)
+        {
+            this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        }
 
         for (let i = 0; i < 3; i++)
         {
             this.send(this.getRazerModeCommand(false));
-            device.pause(10);
         }
+
         for (let i = 0; i < 3; i++)
         {
             this.send({ msg: { cmd: "turn", data: { value: 0 } } });
-            device.pause(10);
         }
 
         device.log('Sent turn off command');
