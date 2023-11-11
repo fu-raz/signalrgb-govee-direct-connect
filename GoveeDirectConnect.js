@@ -778,7 +778,7 @@ class GoveeDeviceUI
         {
             for (let i = totalColors; i < this.ledCount; i++)
             {
-                RGBData.push([255,255,255]);
+                RGBData.push([0,0,0]);
             }
         }
         return RGBData;
