@@ -306,7 +306,7 @@ Item {
 
 					Text {
 						color: theme.primarytextcolor
-						text: "Device id: " + (controller.device.device ? controller.device.device : "Unknown")
+						text: "Device id: " + (controller.device.id ? controller.device.id : "Unknown")
 						font.pixelSize: 14
 						font.family: "Poppins"
 					}
@@ -317,7 +317,7 @@ Item {
 
 					Text {
 						color: theme.primarytextcolor
-						text: "Firmware: " + (controller.device.bleVersionSoft ? controller.device.bleVersionSoft : "Unknown")
+						text: "Firmware: " + (controller.device.firmware ? controller.device.firmware : "Unknown")
 						font.pixelSize: 14
 						font.family: "Poppins"
 						bottomPadding: 25
@@ -511,6 +511,7 @@ Item {
 								if (this.enabled) // dunno if this is needed btw
 								{
 									controller.updateDevice(ledCount.text, lightType.currentValue, splitDevice.currentValue, splitDevice.currentValue);
+									updateButton.enabled = false;
 								}
 							}
 						}
@@ -535,7 +536,7 @@ Item {
 							text: "Delete"
 							anchors.right: parent.center
 							onClicked: {
-								discovery.Delete(controller.ip);
+								discovery.Delete(controller.id);
 							}
 						}
 					}
