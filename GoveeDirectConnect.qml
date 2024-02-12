@@ -229,11 +229,36 @@ Item {
 					spacing: 10
 
 					Text {
+						width: parent.width - 60
 						color: theme.primarytextcolor
-						text: controller.name
+						text: controller.device.getName()
 						font.pixelSize: 18
 						font.family: "Poppins"
 						font.weight: Font.Bold
+					}
+
+					Item {
+						x: parent.width - 60
+						y: 0
+
+						Rectangle {
+							width: 30
+							height: 30
+							radius: width / 2
+							color: "blue" // Change the color as desired
+							border.width: 0
+							visible: (controller.device.id !== null)
+						}
+
+						Rectangle {
+							width: 30
+							height: 30
+							radius: width / 2
+							color: "grey" // Change the color as desired
+							border.width: 0
+							visible: (controller.device.id == null)
+							
+						}
 					}
 
 				// 	Item {

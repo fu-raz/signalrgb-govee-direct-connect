@@ -65,31 +65,55 @@ export function DiscoveryService()
     this.PollInterval = 5000;
 
     this.UdpBroadcastPort = 4003;
-    // this.UdpBroadcastAddress = '239.255.255.250';
     this.UdpListenPort = 4002;
 
-    this.testCommands = [];
-
     this.discoveredDeviceData = {};
-
-    this.GoveeDeviceControllers = {
-        // 192.168.100.38: { Govee Class object }
-    };
+    this.GoveeDeviceControllers = {};
 
     this.Initialize = function() {
-		service.log("Initializing Govee Forced Plugin!");
-        this.lastPollTime = Date.now();
+		// service.log("Initializing Govee Forced Plugin!");
 
+        // Converting settings to new way
+        this.convertSettings();
+        
+        this.lastPollTime = Date.now();
         this.devicesLoaded = false;
-	};
+	}
+
+    this.convertSettings = function()
+    {
+        let oldSettingsData = service.getSetting('GoveeDirectConnect', 'devices');
+        if(oldSettingsData !== undefined)
+        {
+            service.log('Found old settings');
+            let oldSettings = JSON.parse(oldSettingsData);
+            for(let ip of Object.keys(oldSettings))
+            {
+                // We found the ip, let's find the device id
+                let deviceData = oldSettings[ip];
+                deviceData.id = deviceData.device;
+
+                //Create a new Govee device so we can save the data
+                let goveeDevice = new GoveeDevice(deviceData);
+                goveeDevice.save();
+            }
+        }
+    }
 
     this.forceDiscover = function(ip, leds, type)
     {
-        let goveeLightData = { ip: ip, leds: parseInt(leds), type: parseInt(type) };
+        let goveeLightData = { 
+            ip: ip,
+            leds: parseInt(leds),
+            type: parseInt(type),
+            split: 1
+        };
 
-        this.discoveredDeviceData[ip] = goveeLightData
-        
-        service.saveSetting('GoveeDirectConnect', 'devices', JSON.stringify( this.discoveredDeviceData ));
+        // Create a new govee device and save it
+        let goveeDevice = new GoveeDevice(goveeLightData);
+        goveeDevice.save();
+
+        // Force the discover function to reload
         this.devicesLoaded = false;
 
         this.Update(true);
@@ -97,46 +121,31 @@ export function DiscoveryService()
 
     this.loadForcedDevices = function()
     {
-        service.log('Trying to load forced devices');
-        let savedDeviceData = service.getSetting('GoveeDirectConnect', 'devices');
-        if(savedDeviceData !== undefined)
+        // Load the cached ips
+        let ipCacheJSON = service.getSetting('ipCache', 'cache');
+        let ipCache = {};
+        if (ipCacheJSON) ipCache = JSON.parse(ipCacheJSON);
+
+        // Get all cached ips
+        let cachedIps = Object.keys(ipCache);
+        // Get all instanced controller ips
+        let controllerIps = Object.keys(this.GoveeDeviceControllers);
+
+        // Get all of the ips that are no longer in the cache
+        let removedIps = controllerIps.filter(item => !cachedIps.includes(item));
+
+        // Get all of the newly added ips
+        let addedIps = cachedIps.filter(item => !controllerIps.includes(item));
+
+        for (let removedIp of removedIps)
         {
-            this.discoveredDeviceData = JSON.parse(savedDeviceData);
+            this.removeController(removedIp);
         }
-        
-		if(Object.keys(this.discoveredDeviceData).length > 0)
+
+        for (let addedIp of addedIps)
         {
-            // Check if devices are still in new device list
-            for (let ip of Object.keys(this.GoveeDeviceControllers))
-            {
-                if (!Object.keys(this.discoveredDeviceData).includes(ip))
-                {
-                    let goveeController = service.getController(ip);
-                    // Disconnect the Govee device
-                    service.removeController(goveeController);
-                    this.GoveeDeviceControllers[ip].delete();
-                    delete this.GoveeDeviceControllers[ip];
-                }
-            }
-
-            for(let savedIP of Object.keys(this.discoveredDeviceData))
-            {
-                if (!Object.keys(this.GoveeDeviceControllers).includes(savedIP))
-                {
-                    service.log('Adding new Govee controller for ' + savedIP);
-                    let deviceData = this.discoveredDeviceData[savedIP];
-
-                    if (deviceData.hasOwnProperty('onOff')) delete deviceData.onOff;
-                    if (deviceData.hasOwnProperty('pt')) delete deviceData.pt;
-
-                    let goveeController = new GoveeController(deviceData);
-                    this.GoveeDeviceControllers[savedIP] = goveeController;
-                    service.addController(goveeController);
-                }
-            }
-            
-            this.devicesLoaded = true;
-		}
+            this.createController(ipCache[addedIp]);
+        }
     }
 
     this.Update = function(force)
@@ -189,8 +198,8 @@ export function DiscoveryService()
                     let newDeviceData = Object.assign({}, currentDeviceData, goveeData);
                     this.GoveeDeviceControllers[value.ip].device = newDeviceData;
     
-                    service.log('Saving received data to govee device controller');
-                    service.log(newDeviceData);
+                    // service.log('Saving received data to govee device controller');
+                    // service.log(newDeviceData);
     
                     this.GoveeDeviceControllers[value.ip].save();
 
@@ -200,56 +209,75 @@ export function DiscoveryService()
                         {
                             controller.obj.device = newDeviceData;
                             controller.obj.changed = true;
-                            service.log('Found controller and changed data to:');
-                            service.log(controller.obj);
+                            // service.log('Found controller and changed data to:');
+                            // service.log(controller.obj);
                         }
                     }
                 } else {
-                    // service.log(value.ip + ': ' + goveeResponse.msg.cmd);
-                    // service.log(goveeData);
+                    // // service.log(value.ip + ': ' + goveeResponse.msg.cmd);
+                    // // service.log(goveeData);
                 }
             } else {
-                service.log('No controller found for ' + value.ip);
+                // service.log('No controller found for ' + value.ip);
             }
         }
 	};
 
     this.Delete = function(ip)
     {
-        service.log('Deleting device ' + ip);
-        let deviceListJSON = service.getSetting('GoveeDirectConnect', 'devices');
-        let forcedGoveeDevices = JSON.parse(deviceListJSON);
+        // service.log('Deleting device ' + ip);
+        // let deviceListJSON = service.getSetting('GoveeDirectConnect', 'devices');
+        // let forcedGoveeDevices = JSON.parse(deviceListJSON);
 
-        if (Object.keys(forcedGoveeDevices).includes(ip))
-        {
-            delete forcedGoveeDevices[ip];
-            service.saveSetting('GoveeDirectConnect', 'devices', JSON.stringify(forcedGoveeDevices));
+        // if (Object.keys(forcedGoveeDevices).includes(ip))
+        // {
+        //     delete forcedGoveeDevices[ip];
+        //     service.saveSetting('GoveeDirectConnect', 'devices', JSON.stringify(forcedGoveeDevices));
 
-            let controller = this.GoveeDeviceControllers[ip];
-            service.removeController(controller);
-            delete this.GoveeDeviceControllers[ip];
+        //     this.removeController(ip);
             
-            this.Update(true);
-            return;
+        //     this.Update(true);
+        //     return;
+        // }
+    }
+
+    this.removeController = function(ip)
+    {
+        let goveeController = this.GoveeDeviceControllers[ip];
+        service.removeController(goveeController);
+        delete this.GoveeDeviceControllers[ip];
+    }
+
+    this.createController = function(cacheData)
+    {
+        service.log('Creating controller:');
+        service.log(cacheData);
+        
+        let goveeDevice;
+
+        if (cacheData.id)
+        {
+            goveeDevice = (new GoveeDevice).load(cacheData.id);
+        } else
+        {
+            goveeDevice = new GoveeDevice(cacheData);
+            // In the future: Request the device data
+            // goveeDevice.requestDeviceData();
         }
+
+        // Create and store controller for network tab
+        let goveeController = new GoveeController(goveeDevice);
+        this.GoveeDeviceControllers[cacheData.ip] = goveeController;
+        service.addController(goveeController);
     }
 }
 
 class GoveeController
 {
-    constructor(device)
+    constructor(goveeDevice)
     {
-        if (device.hasOwnProperty('device'))
-        {
-            this.id = device.device;
-        } else
-        {
-            this.id = device.ip;
-        }
-
-        this.name = `Govee Controller for: ${device.ip}`;
-        this.ip = device.ip;
-        this.device = device;
+        this.device = goveeDevice;
+        this.id = goveeDevice.ip;
         this.initialized = false;
     }
 
@@ -260,32 +288,14 @@ class GoveeController
 
     updateDevice(leds, type, split)
     {
+        // Change the device data
         this.device.leds = leds;
         this.device.type = type;
         this.device.split = split;
 
-        this.save();
+        // Save the device data
+        this.device.save();
 
-        service.log(`Changing leds and/or type to ${leds} leds and protocol type ${type}`);
-        service.log('Changing mirrored setting to: ' + split);
-        service.removeController(this);
-        service.addController(this);
-        service.announceController(this);
-    }
-
-    save()
-    {
-        let forcedGoveeDevices;
-        try {
-            forcedGoveeDevices = JSON.parse( service.getSetting('GoveeDirectConnect', 'devices') );
-        } catch(ex)
-        {
-            forcedGoveeDevices = {};
-        }
-
-        forcedGoveeDevices[this.ip] = this.device;
-        service.saveSetting('GoveeDirectConnect', 'devices', JSON.stringify(forcedGoveeDevices));
-        service.log('Updating the controller');
         service.updateController(this);
     }
 
@@ -294,84 +304,144 @@ class GoveeController
 		if(!this.initialized)
         {
 			this.initialized = true;
-            service.log('Announcing Govee Controller for ip: ' + this.ip);
-			service.announceController(this);
+            if (this.device.id)
+            {
+                service.announceController(this);
+            }
 		}
 	}
-
-    delete()
-    {
-        service.log('Trying to delete controller for ip: ' + this.ip);
-    }
 }
 
 class GoveeDevice
 {
     constructor(data)
     {
-        this.id = (data.hasOwnProperty('device')) ? data.device : data.ip;
-
-        this.ip = data.ip;
+        if (data)
+        {
+            this.id = (data.hasOwnProperty('id')) ? data.id : null;
+            this.ip = data.ip;
+            this.leds = parseInt(data.leds);
+            this.type = parseInt(data.type);
+            this.split = data.split ? parseInt(data.split) : 1;
+            this.sku = data.hasOwnProperty('sku') ? data.sku : null;
+            this.brightness = data.hasOwnProperty('brightness') ? data.brightness : null;
+            this.firmware = data.hasOwnProperty('bleVersionSoft') ? data.bleVersionSoft : null;
+            this.name = (data.hasOwnProperty('name')) ? data.name : this.generateName();
+        }
+        
+        this.onOff = false;
+        // PT Data uwABsgAI = razer off, uwABsgEJ = razer on
+        this.pt = null;         
         this.port = 4003;
         this.statusPort = 4001;
-        this.leds = parseInt(data.leds);
-        this.type = parseInt(data.type);
-        this.split = parseInt(data.split);
-        this.onOff = data.hasOwnProperty('onOff') ? data.onOff : false;
-        this.pt = data.hasOwnProperty('pt') ? data.pt : null;
-        this.sku = data.hasOwnProperty('sku') ? data.sku : null;
-        this.brightness = data.hasOwnProperty('brightness') ? data.brightness : null;
-        this.firmware = data.hasOwnProperty('bleVersionSoft') ? data.bleVersionSoft : null;
-        // PT Data uwABsgAI = razer off, uwABsgEJ = razer on
+        this.enabled = true;
+
         this.lastRender = 0;
         this.lastStatus = 0;
         this.lastDeviceDataCheck = Date.now();
-
-        this.enabled = true;
-
         this.lastSingleColor = '';
     }
 
-    getName()
+    save()
+    {
+        if (this.id)
+        {
+            // Create a new setting specifically for that device
+            service.saveSetting(this.id, 'ip', this.ip);
+            service.saveSetting(this.id, 'leds', this.leds);
+            service.saveSetting(this.id, 'type', this.type);
+            service.saveSetting(this.id, 'split', this.split);
+            service.saveSetting(this.id, 'sku', this.sku);
+            service.saveSetting(this.id, 'brightness', this.brightness);
+            service.saveSetting(this.id, 'firmware', this.firmware);
+            service.saveSetting(this.id, 'name', this.name);
+
+            service.log('Saved device');
+            this.printDetails(service);
+        } else
+        {
+            service.log('Data not yet received by device, saving device data later');
+        }
+
+        // Let's update the ipCache
+        let ipCacheJSON = service.getSetting('ipCache', 'cache');
+        let ipCache = {};
+        if (ipCacheJSON) ipCache = JSON.parse(ipCacheJSON);
+        // Save all data for the interface
+        ipCache[this.ip] = {
+            id: this.id,
+            ip: this.ip,
+            name: this.name,
+            leds: this.leds,
+            type: this.type,
+            split: this.split
+        };
+
+        service.saveSetting('ipCache', 'cache', JSON.stringify(ipCache));
+    }
+
+    load(id)
+    {
+        this.id         = id;
+        this.ip         = service.getSetting(id, 'ip');
+        this.leds       = service.getSetting(id, 'leds');
+        this.type       = service.getSetting(id, 'type');
+        this.split      = service.getSetting(id, 'split');
+        this.sku        = service.getSetting(id, 'sku');
+        this.brightness = service.getSetting(id, 'brightness');
+        this.firmware   = service.getSetting(id, 'firmware');
+        this.name       = service.getSetting(id, 'name');
+
+        service.log('Loaded device');
+        this.printDetails(service);
+    }
+
+    generateName()
     {
         return `Govee ${this.sku ? this.sku : 'device'} on ${this.ip}`;
     }
 
-    printDetails()
+    getName()
     {
-        device.log(`SKU: ${this.sku}`);
-        device.log(`Firmware: ${this.firmware}`);
-        device.log(`IP address: ${this.ip}`);
-        device.log(`Total LED count: ${this.leds}`);
+        return this.name;
+    }
+
+    printDetails(logger)
+    {
+        logger.log(`Name: ${this.name}`);
+        logger.log(`SKU: ${this.sku}`);
+        logger.log(`Firmware: ${this.firmware}`);
+        logger.log(`IP address: ${this.ip}`);
+        logger.log(`Total LED count: ${this.leds}`);
         switch(this.type)
         {
             // Dreamview mode
             case 1:
-                device.log(`Protocol: Dreamview`);
+                logger.log(`Protocol: Dreamview`);
                 break;
             case 2:
-                device.log(`Protocol: Razer`);
+                logger.log(`Protocol: Razer`);
                 break;
             case 3:
-                device.log(`Protocol: Solid color`);
+                logger.log(`Protocol: Solid color`);
                 break;
             case 4:
-                device.log(`Protocol: Legacy Razer protocol`);
+                logger.log(`Protocol: Legacy Razer protocol`);
                 break;
         }
         switch(this.split)
         {
             case 1:
-                device.log(`Split: Single device`);
+                logger.log(`Split: Single logger`);
                 break;
             case 2:
-                device.log(`Split: Mirrored`);
+                logger.log(`Split: Mirrored`);
                 break;
             case 3:
-                device.log(`Split: Two devices`);
+                logger.log(`Split: Two devices`);
                 break;
             case 4:
-                device.log(`Split: Custom components`);
+                logger.log(`Split: Custom components`);
                 break;
         }
     }
@@ -386,7 +456,7 @@ class GoveeDevice
         });
     }
 
-    getDeviceData()
+    requestDeviceData()
     {
         device.log('Asking device for device data');
         udp.send(this.ip, this.statusPort, {msg: { cmd: 'scan', data: {account_topic: 'reserve'} }});
