@@ -1,5 +1,5 @@
-import goveeProducts from "./govee-products.js";
-import GoveeDevice from "./GoveeDevice.js";
+import goveeProducts from "./govee-products.test.js";
+import GoveeDevice from "./GoveeDevice.test.js";
 
 export default class GoveeDeviceUI
 {
@@ -9,6 +9,7 @@ export default class GoveeDeviceUI
         this.controller = controller;
 
         this.goveeDevice = new GoveeDevice(controller.device);
+        this.goveeDevice.setupUdpServer();
 
         // Setup lighting device
         this.ledCount = controller.device.leds;
@@ -16,9 +17,6 @@ export default class GoveeDeviceUI
         this.ledPositions = [];
 
         this.subDevices = [];
-
-        this.device.addFeature("udp");
-        this.device.addFeature("base64");
 
         this.device.setName(this.goveeDevice.getName());
         this.device.setImageFromBase64(this.getImage(this.goveeDevice.sku));

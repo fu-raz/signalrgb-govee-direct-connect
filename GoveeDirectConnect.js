@@ -1,11 +1,11 @@
-import goveeProducts from "./govee-products.js";
-
-import GoveeDevice from "./GoveeDevice.js";
-import GoveeController from "./GoveeController.js";
-import GoveeDeviceUI from "./GoveeDeviceUI.js";
+import udp from "@SignalRGB/udp";
+import goveeProducts from "./govee-products.test.js";
+import GoveeDevice from "./GoveeDevice.test.js";
+import GoveeController from "./GoveeController.test.js";
+import GoveeDeviceUI from "./GoveeDeviceUI.test.js";
 
 export function Name() { return "Govee Direct Connect"; }
-export function Version() { return "1.2.0"; }
+export function Version() { return "2.0.0"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }
 export function Size() { return [1, 1]; }
@@ -35,7 +35,7 @@ export function Initialize()
 export function Render()
 {
     let now = Date.now();
-    if (now - lastRender > 10000)
+    if (now - lastRender > 1000)
     {
         // Check update status
         if (controller.changed)
@@ -62,20 +62,33 @@ export function Validate()
 export function DiscoveryService()
 {
     this.IconUrl = getGoveeLogo();
+
     this.lastPollTime = -5000;
     this.PollInterval = 5000;
 
-    this.UdpBroadcastPort = 4003;
-    this.UdpListenPort = 4002;
+    this.lastPort = null;
+    
+    // Disabled so we don't use the built in broadcasting
+    // this.UdpBroadcastPort = 4003;
+    // this.UdpListenPort = 4002;
 
     this.discoveredDeviceData = {};
     this.GoveeDeviceControllers = {};
 
     this.Initialize = function() {
+        this.lastPort = service.getSetting('ipCache', 'lastUniquePort');
+        if (!this.lastPort) this.getUniquePort();
+
         this.convertSettings();
         
         this.lastPollTime = Date.now();
         this.devicesLoaded = false;
+
+            // Start the udp server
+        this.udpServer = udp.createSocket();
+        this.udpServer.on('message', this.handleSocketMessage.bind(this));
+        this.udpServer.on('error', this.handleSocketError.bind(this));
+        this.udpServer.bind(4002);
 	}
 
     this.convertSettings = function()
@@ -108,7 +121,8 @@ export function DiscoveryService()
             ip: ip,
             leds: parseInt(leds),
             type: parseInt(type),
-            split: 1
+            split: 1,
+            uniquePort: this.getUniquePort()
         };
 
         this.GoveeDeviceControllers[ip] = this.createController(goveeLightData);
@@ -167,30 +181,19 @@ export function DiscoveryService()
 		}
     }
 
-    this.Discovered = function(value)
+    this.handleSocketError = function(err, message)
+    {
+        service.error(message);
+    }
+
+    this.handleSocketMessage = function(value)
     {
         if (!value) return;
-        
-        let goveeResponse = JSON.parse(value.response);
-        let goveeData = goveeResponse.msg.data;
 
-        if (this.GoveeDeviceControllers.hasOwnProperty(value.ip))
+        if (this.GoveeDeviceControllers.hasOwnProperty(value.address))
         {
-            let goveeController = this.GoveeDeviceControllers[value.ip];
-            
-            if (goveeResponse.msg.cmd == 'scan')
-            {
-                goveeController.updateDeviceData(goveeData);
-            } else if (goveeResponse.msg.cmd == 'status' || goveeResponse.msg.cmd == 'devStatus')
-            {   
-                service.log('Received status data for ' + value.ip);
-                if (JSON.stringify(goveeController.statusData) !== JSON.stringify(goveeData))
-                {
-                    goveeController.changed = true;
-                    goveeController.statusData = goveeData;
-                    service.updateController(goveeController);
-                }
-            }
+            let goveeController = this.GoveeDeviceControllers[value.address];
+            goveeController.relaySocketMessage(value);
         }
 	};
 
@@ -222,6 +225,21 @@ export function DiscoveryService()
         delete this.GoveeDeviceControllers[ip];
     }
 
+    this.getUniquePort = function()
+    {
+        if (!this.lastPort)
+        {
+            this.lastPort = 42069;
+        } else
+        {
+            this.lastPort++;
+        }
+        
+        // Save the new port:
+        service.saveSetting('ipCache', 'lastUniquePort', this.lastPort);
+        return this.lastPort;
+    }
+
     this.createController = function(cacheData)
     {
         service.log('Creating controller: ' + cacheData.ip);
@@ -231,16 +249,20 @@ export function DiscoveryService()
         if (cacheData.id)
         {
             goveeDevice = (new GoveeDevice).load(cacheData.id);
+
+            // Add this for devices with the old settings
+            if (!goveeDevice.uniquePort)
+            {
+                goveeDevice.uniquePort = this.getUniquePort();
+                goveeDevice.save();
+            }
         } else
         {
             goveeDevice = new GoveeDevice(cacheData);
-            // In the future: Request the device data
-            // goveeDevice.requestDeviceData();
         }
 
         // Create and store controller for network tab
         let goveeController = new GoveeController(goveeDevice, this);
-
         return goveeController;
     }
 
@@ -252,8 +274,8 @@ export function DiscoveryService()
         service.addController(goveeController);
         service.announceController(goveeController);
     }
-
     
+
 }
 
 function getGoveeLogo()

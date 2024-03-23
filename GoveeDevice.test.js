@@ -1,4 +1,8 @@
 import {encode, decode} from "@SignalRGB/base64";
+import udp from "@SignalRGB/udp";
+
+const RAZER_ON = 'uwABsgEJ';
+const RAZER_OFF = 'uwABsgAI';
 
 export default class GoveeDevice
 {
@@ -14,21 +18,77 @@ export default class GoveeDevice
             this.sku = data.hasOwnProperty('sku') ? data.sku : null;
             this.firmware = data.hasOwnProperty('bleVersionSoft') ? data.bleVersionSoft : null;
             this.name = (data.hasOwnProperty('name')) ? data.name : this.generateName();
+            this.uniquePort = (data.hasOwnProperty('uniquePort') ? data.uniquePort : null);
         }
 
         this.testMode = (!this.id);
         
         this.brightness = 100;
-        this.onOff = false;
-        this.pt = null;         // PT Data uwABsgAI = razer off, uwABsgEJ = razer on
+        this.onOff = 0;
+        this.pt = RAZER_OFF;
         this.port = 4003;
         this.statusPort = 4001;
         this.enabled = true;
 
         this.lastRender = 0;
         this.lastStatus = 0;
-        this.lastDeviceDataCheck = Date.now();
+        this.lastDeviceDataCheck = 0;
         this.lastSingleColor = '';
+    }
+
+    handleSocketMessage(message)
+    {
+        try
+        {
+            let goveeResponse = JSON.parse(message.data);
+            if (goveeResponse.msg.cmd == 'scan')
+            {
+                this.update(goveeResponse.msg.data);
+            } else if (goveeResponse.msg.cmd == 'status' || goveeResponse.msg.cmd == 'devStatus')
+            {   
+                this.updateStatus(goveeResponse.msg.data);
+            } else
+            {
+                device.log('Received other data');
+            }
+        } catch(err)
+        {
+            device.log(err.message);
+        }
+    }
+
+    handleSocketError(errorId, errorMessage)
+    {
+        device.error(errorMessage);
+    }
+
+    handleListening()
+    {
+        const address = this.udpServer.address();
+        device.log(`Started listening on`);
+        device.log(address);
+    }
+
+    handleConnection()
+    {
+        // service.log('Connected to');
+        // service.log(this.udpServer.remoteAddress());
+    }
+
+    setupUdpServer()
+    {
+        if (this.uniquePort)
+        {
+            this.udpServer = udp.createSocket();
+            this.udpServer.on('message', this.handleSocketMessage.bind(this));
+            this.udpServer.on('error', this.handleSocketError.bind(this));
+            this.udpServer.on('listening', this.handleListening.bind(this));
+            // this.udpServer.on('connection', this.handleConnection.bind(this));
+
+            // Listen to this device specific port
+            this.udpServer.bind(this.uniquePort);
+            // this.udpServer.connect(this.ip, this.port);
+        }
     }
 
     save()
@@ -43,6 +103,7 @@ export default class GoveeDevice
             service.saveSetting(this.id, 'sku', this.sku);
             service.saveSetting(this.id, 'firmware', this.firmware);
             service.saveSetting(this.id, 'name', this.name);
+            service.saveSetting(this.id, 'uniquePort', this.uniquePort);
 
             service.log('Saved device');
             this.printDetails(service);
@@ -62,7 +123,8 @@ export default class GoveeDevice
             name: this.name,
             leds: this.leds,
             type: this.type,
-            split: this.split
+            split: this.split,
+            uniquePort: this.uniquePort
         };
     }
 
@@ -76,6 +138,7 @@ export default class GoveeDevice
         this.sku        = service.getSetting(id, 'sku');
         this.firmware   = service.getSetting(id, 'firmware');
         this.name       = service.getSetting(id, 'name');
+        this.uniquePort = service.getSetting(id, 'uniquePort');
 
         service.log('Loaded device');
         this.printDetails(service);
@@ -115,10 +178,30 @@ export default class GoveeDevice
 
     updateStatus(receivedData)
     {
-        device.log('Changing status');
-        this.brightness = receivedData.brightness;
-        this.onOff = receivedData.onOff;
-        this.pt = receivedData.pt;
+        if (this.brightness !== receivedData.brightness)
+        {
+            device.log(`Changed brightness from ${this.brightness} to ${receivedData.brightness}`);
+            this.brightness = receivedData.brightness;
+        }
+
+        if (this.onOff !== receivedData.onOff)
+        {
+            device.log(`Changed onOff from ${this.onOff} to ${receivedData.onOff}`);
+            this.onOff = receivedData.onOff;
+        }
+
+        if (this.pt !== receivedData.pt)
+        {
+            if (receivedData.pt == RAZER_OFF || receivedData.pt == RAZER_ON)
+            {
+                device.log(`Changed pt from ${this.pt} to ${receivedData.pt}`);
+                this.pt = receivedData.pt;
+            } else
+            {
+                device.log('Received weird PT data');
+                device.log(receivedData.pt);
+            }
+        }
     }
 
     generateName()
@@ -173,18 +256,15 @@ export default class GoveeDevice
 
     getStatus()
     {
-        udp.send(this.ip, this.port, {
-            msg: {
-                cmd: "status",
-                data: {}
-            }
-        });
+        const statusPacket = { msg: { cmd: "status", data: {} } };
+        this.send(statusPacket);
     }
 
     requestDeviceData()
     {
         device.log('Asking device for device data');
-        udp.send(this.ip, this.statusPort, {msg: { cmd: 'scan', data: {account_topic: 'reserve'} }});
+        const deviceDataRequestPacket = {msg: { cmd: 'scan', data: {account_topic: 'reserve'} }};
+        this.send(deviceDataRequestPacket, this.statusPort)
     }
 
     getRazerModeCommand(enable)
@@ -303,39 +383,47 @@ export default class GoveeDevice
             // Every 60 minutes check if the device data has updated (like firmware changes)
             if (now - this.lastDeviceDataCheck > 60 * 60 * 1000)
             {
-                device.log('Updating device data');
                 this.requestDeviceData();
                 this.lastDeviceDataCheck = now;
+
+                // Not sending more commands to not overload
+                return;
             }
     
-            // Every 10 seconds check if we need to enable razer
-            if (now - this.lastRender > 10 * 1000)
+            // Every 5 seconds check if we need to enable razer
+            if (now - this.lastRender > 9 * 1000)
             {
                 // Check if we have the device data already
                 if (this.id == null)
                 {
                     // There's no unique ID, so we need to get that data
                     this.requestDeviceData();
-                }
-    
-                // Turn device on if it's off
-                if (!this.onOff)
+                } else
                 {
-                    device.log('Sending `turn on` command');
-                    this.turnOn();
-                }
-    
-                // If not single color
-                if (this.type !== 3)
-                {
-                    if (this.pt !== 'uwABsgEJ')
+                    // Turn device on if it's off
+                    if (!this.onOff)
                     {
-                        device.log('Sending `razer on` command');
-                        this.send(this.getRazerModeCommand(true));
+                        device.log('Sending `turn on` command');
+                        this.turnOn();
+                    } else
+                    {
+                        // Make sure device is on before sending more commands
+                        // If not single color
+                        if (this.type !== 3)
+                        {
+                            if (this.pt !== RAZER_ON)
+                            {
+                                device.log('Sending `razer on` command');
+                                this.send(this.getRazerModeCommand(true));
+                            }
+                        }
                     }
                 }
                 
                 this.lastRender = now;
+
+                // Not sending more commands to not overload
+                return
             }
 
             // Every 5 seconds check the status
@@ -343,17 +431,21 @@ export default class GoveeDevice
             {
                 this.getStatus();
                 this.lastStatus = now;
-
-                // Also use this to check brightness
-                if (this.brightness !== device.Brightness)
-                {
-                    this.setBrightness(device.Brightness);
-                }
+                return
             }
 
-            // Send RGB command first, then do calculations and stuff later
-            let colorCommand = this.getColorCommand(colors);
-            this.send(colorCommand);
+            if (this.brightness !== device.Brightness)
+            {
+                device.log('Setting brightness');
+                this.setBrightness(device.Brightness);
+            }
+
+            if (this.onOff)
+            {
+                // Send RGB command first, then do calculations and stuff later
+                let colorCommand = this.getColorCommand(colors);
+                this.send(colorCommand);
+            }
         }
     }
 
@@ -368,7 +460,7 @@ export default class GoveeDevice
         if (now - this.lastRender > 10000)
         {
             // Turn off Razer mode
-            if (this.pt == 'uwABsgEJ')
+            if (this.pt == RAZER_ON)
             {
                 device.log('Sending `razer off` command');
                 this.send(this.getRazerModeCommand(false));
@@ -388,36 +480,18 @@ export default class GoveeDevice
         }
     }
 
-    send(command)
+    send(command, port)
     {
-        udp.send(this.ip, this.port, command);
+        this.udpServer.write(command, this.ip, port ? port : this.port);
     }
 
     turnOff()
     {
-        // I wish we didn't have to brute force it like this haha!
         this.enabled = false;
-        this.pt = "";
-        device.log('Disabled device, now sending razer off command');
-        device.log('Sent razer off command, now turning off');
-        device.log('Lets blast this device with turn off commands')
         
-        for (let i = 0; i < 3; i++)
-        {
-            this.send({ msg: { cmd: "turn", data: { value: 0 } } });
-        }
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
 
-        for (let i = 0; i < 3; i++)
-        {
-            this.send(this.getRazerModeCommand(false));
-        }
-
-        for (let i = 0; i < 3; i++)
-        {
-            this.send({ msg: { cmd: "turn", data: { value: 0 } } });
-        }
-
-        device.log('Sent turn off command');
+        this.pt = RAZER_OFF;
         this.onOff = 0;
     }
 
