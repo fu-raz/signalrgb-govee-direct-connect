@@ -38,14 +38,6 @@ export default class GoveeController
         this.discovery.updatedController(this);
     }
 
-    // updateDeviceData(receivedData)
-    // {
-    //     this.device.update(receivedData);
-    //     this.name = this.device.getName();
-
-    //     this.discovery.updatedController(this);
-    // }
-
     toCacheJSON()
     {
         return this.device.toCacheJSON();
@@ -74,21 +66,10 @@ export default class GoveeController
         if (this.device.uniquePort)
         {
             let goveeResponse = JSON.parse(value.data);
-            // if (!this.connected)
-            // {
-            //     this.udpSocket.connect('127.0.0.1', this.device.uniquePort);
-            //     this.messageQueue.push(goveeResponse);
-            // } else
-            // {
-            //     this.udpSocket.send(goveeResponse);
-            // }
-            service.log('Relaying to 127.0.0.1:' + this.device.uniquePort);
             this.udpSocket.write(goveeResponse, '127.0.0.1', this.device.uniquePort);
-            service.log('Did it');
         } else
         {
             service.log('Govee device doesnt have a unique port');
         }
-        // Write to the local socket
     }
 }

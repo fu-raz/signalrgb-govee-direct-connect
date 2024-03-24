@@ -11,13 +11,15 @@ export function Publisher() { return "RickOfficial"; }
 export function Size() { return [1, 1]; }
 export function DefaultPosition() {return [0, 70]; }
 export function DefaultScale(){return 1.0;}
+export function DefaultComponentBrand() { return "Govee";}
 export function ControllableParameters()
 {
 	return [
-		{"property":"lightingMode", "group":"settings", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced"], "default":"Canvas"},
-		{"property":"forcedColor", "group":"settings", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
-		{"property":"turnOff", "group":"settings", "label":"On shutdown", "type":"combobox", "values":["Do nothing", "Single color", "Turn device off"], "default":"Turn device off"},
-        {"property":"shutDownColor", "group":"settings", "label":"Shutdown Color", "min":"0", "max":"360", "type":"color", "default":"#8000FF"}
+		{"property":"lightingMode", "group":"lighting", "label":"Lighting Mode", "type":"combobox", "values":["Canvas", "Forced"], "default":"Canvas"},
+		{"property":"forcedColor", "group":"lighting", "label":"Forced Color", "min":"0", "max":"360", "type":"color", "default":"#009bde"},
+		{"property":"turnOff", "group":"lighting", "label":"On shutdown", "type":"combobox", "values":["Do nothing", "Single color", "Turn device off"], "default":"Turn device off"},
+        {"property":"shutDownColor", "group":"lighting", "label":"Shutdown Color", "min":"0", "max":"360", "type":"color", "default":"#8000FF"},
+        {"property":"frameDelay", "group":"settings", "label":"Delay between frames", "type":"combobox", "values":["0", "10", "50", "100"], "default":"0"}
 	];
 }
 
@@ -35,17 +37,7 @@ export function Initialize()
 export function Render()
 {
     let now = Date.now();
-    if (now - lastRender > 1000)
-    {
-        // Check update status
-        if (controller.changed)
-        {
-            goveeUI.updateStatus(controller.statusData);
-            controller.changed = false;
-        }
-        lastRender = now;
-    }
-    goveeUI.render(lightingMode, forcedColor, now);
+    goveeUI.render(lightingMode, forcedColor, now, frameDelay);
 }
 
 export function Shutdown()
@@ -265,16 +257,6 @@ export function DiscoveryService()
         let goveeController = new GoveeController(goveeDevice, this);
         return goveeController;
     }
-
-    this.updatedController = function(goveeController)
-    {
-        console.log(`Controller ${goveeController.id} data updated`);
-        this.saveCache();
-        service.removeController(goveeController);
-        service.addController(goveeController);
-        service.announceController(goveeController);
-    }
-    
 
 }
 

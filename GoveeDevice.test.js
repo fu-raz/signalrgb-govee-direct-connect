@@ -371,7 +371,7 @@ export default class GoveeDevice
         return checksum;
     }
 
-    sendRGB(colors, now)
+    sendRGB(colors, now, frameDelay)
     {
         if (this.enabled)
         {
@@ -445,6 +445,12 @@ export default class GoveeDevice
                 // Send RGB command first, then do calculations and stuff later
                 let colorCommand = this.getColorCommand(colors);
                 this.send(colorCommand);
+
+                frameDelay = parseInt(frameDelay);
+                if (frameDelay > 0)
+                {
+                    device.pause(frameDelay);
+                }
             }
         }
     }
@@ -488,7 +494,10 @@ export default class GoveeDevice
     turnOff()
     {
         this.enabled = false;
-        
+        // Set color to black
+        this.singleColor([0,0,0], 0);
+
+        // Turn device off
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
 
         this.pt = RAZER_OFF;

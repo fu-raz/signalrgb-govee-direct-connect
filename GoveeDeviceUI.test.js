@@ -63,11 +63,6 @@ export default class GoveeDeviceUI
         }
     }
 
-    updateStatus(receivedData)
-    {
-        this.goveeDevice.updateStatus(receivedData);
-    }
-
     getImage(sku)
     {
         if (goveeProducts.hasOwnProperty(sku)) return goveeProducts[sku].base64Image;
@@ -91,46 +86,34 @@ export default class GoveeDeviceUI
         }
     }
 
-    render(lightingMode, forcedColor, now)
+    render(lightingMode, forcedColor, now, frameDelay)
     {
-        if (this.goveeDevice.testMode)
+        switch(lightingMode)
         {
-            // We should wait till we get new data
-            if (now - this.lastRender > 10000)
-            {
-                this.log('Trying to retreive device data...');
-                this.goveeDevice.requestDeviceData();
-                this.lastRender = now;
-            }
-        } else 
-        {
-            switch(lightingMode)
-            {
-                case "Canvas":
-                    let RGBData = [];
-    
-                    switch(this.goveeDevice.split)
-                    {
-                        case 3:
-                            RGBData = this.getRGBFromSubdevices();
-                            this.device.log(RGBData.length);
-                            break;
-                        case 4:
-                            if (this.device.getLedCount() == 0) return;
-                            const channel = this.device.channel(this.goveeDevice.sku);
-                            RGBData = this.parseChannelColors(channel.getColors('Inline'));
-                            break;
-                        default:
-                            RGBData = this.getDeviceRGB();
-                            break;
-                    }
-    
-                    this.goveeDevice.sendRGB(RGBData, now);
-                    break;
-                case "Forced":
-                    this.goveeDevice.singleColor(this.hexToRGB(forcedColor), now);
-                    break;
-            }
+            case "Canvas":
+                let RGBData = [];
+
+                switch(this.goveeDevice.split)
+                {
+                    case 3:
+                        RGBData = this.getRGBFromSubdevices();
+                        this.device.log(RGBData.length);
+                        break;
+                    case 4:
+                        if (this.device.getLedCount() == 0) return;
+                        const channel = this.device.channel(this.goveeDevice.sku);
+                        RGBData = this.parseChannelColors(channel.getColors('Inline'));
+                        break;
+                    default:
+                        RGBData = this.getDeviceRGB();
+                        break;
+                }
+
+                this.goveeDevice.sendRGB(RGBData, now, frameDelay);
+                break;
+            case "Forced":
+                this.goveeDevice.singleColor(this.hexToRGB(forcedColor), now);
+                break;
         }
     }
 
