@@ -245,7 +245,7 @@ Item {
 							width: 30
 							height: 30
 							radius: width / 2
-							color: "blue" // Change the color as desired
+							color: "green" // Change the color as desired
 							border.width: 0
 							visible: (controller.device.id !== null)
 						}
@@ -379,6 +379,7 @@ Item {
 							verticalAlignment: TextInput.AlignVCenter
 							placeholderText: ""
 							text: controller.device.leds
+							visible: true
 							
 							validator: RegularExpressionValidator {
 								regularExpression:  /^([0-9]{1,3})$/

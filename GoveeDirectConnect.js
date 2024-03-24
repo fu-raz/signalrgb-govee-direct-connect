@@ -76,12 +76,17 @@ export function DiscoveryService()
         this.lastPollTime = Date.now();
         this.devicesLoaded = false;
 
-            // Start the udp server
+        this.startSocketServer();
+	}
+
+    this.startSocketServer = function()
+    {
+        // Start the udp server
         this.udpServer = udp.createSocket();
         this.udpServer.on('message', this.handleSocketMessage.bind(this));
         this.udpServer.on('error', this.handleSocketError.bind(this));
         this.udpServer.bind(4002);
-	}
+    }
 
     this.convertSettings = function()
     {
@@ -186,6 +191,9 @@ export function DiscoveryService()
         {
             let goveeController = this.GoveeDeviceControllers[value.address];
             goveeController.relaySocketMessage(value);
+        } else
+        {
+            service.log(`Cannot find controller for ${value.address}`);
         }
 	};
 
@@ -258,6 +266,19 @@ export function DiscoveryService()
         return goveeController;
     }
 
+    this.updatedController = function(goveeController)
+    {
+        service.log(`Controller ${goveeController.id} data updated`);
+        this.saveCache();
+        service.removeController(goveeController);
+        service.addController(goveeController);
+        service.log('Re-announcing the controller');
+        service.announceController(goveeController);
+
+        service.log('Restart our socket server');
+        this.startSocketServer();
+
+    }
 }
 
 function getGoveeLogo()

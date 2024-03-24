@@ -8,6 +8,7 @@ export default class GoveeDeviceUI
         this.device = device
         this.controller = controller;
 
+        device.log('Setting up Govee device and udp server');
         this.goveeDevice = new GoveeDevice(controller.device);
         this.goveeDevice.setupUdpServer();
 

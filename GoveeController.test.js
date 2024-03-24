@@ -15,9 +15,6 @@ export default class GoveeController
 
         this.connected = false;
         this.messageQueue = [];
-        this.udpSocket = udp.createSocket();
-        this.udpSocket.on('error', this.handleSocketError.bind(this));
-        this.udpSocket.on('connection', this.handleSocketConnection.bind(this));
     }
 
     validateDeviceUpdate(leds, type, split)
@@ -35,6 +32,11 @@ export default class GoveeController
         // Save the device data
         this.device.save();
 
+        // We should have the device disconnect the socket
+        //service.log('Sending disconnect command to device port: ' + this.device.uniquePort);
+        //this.sendToDevice({msg: { cmd: 'disconnect' }})
+
+        // Let discovery know that we updated the device settings and need to reinit the device
         this.discovery.updatedController(this);
     }
 
@@ -48,28 +50,31 @@ export default class GoveeController
         service.log(errMessage);
     }
 
-    handleSocketConnection()
-    {
-        console.log('Connection established');
-        this.connected = true;
-        while(this.messageQueue.length > 0)
-        {
-            let goveeResponse = this.messageQueue.shift();
-            service.log('Sending delayed data');
-            service.log(goveeResponse)
-            this.udpSocket.send(goveeResponse);
-        }
-    }
-
     relaySocketMessage(value)
     {
         if (this.device.uniquePort)
         {
             let goveeResponse = JSON.parse(value.data);
-            this.udpSocket.write(goveeResponse, '127.0.0.1', this.device.uniquePort);
+            this.sendToDevice(goveeResponse);
         } else
         {
             service.log('Govee device doesnt have a unique port');
         }
+    }
+
+    sendToDevice(data)
+    {
+        if (!this.udpSocket)
+        {
+            this.setupUDPSocket();
+        }
+        this.udpSocket.write(data, '127.0.0.1', this.device.uniquePort);
+    }
+
+    setupUDPSocket()
+    {
+        service.log('Creating udp socket for controller ' + this.id);
+        this.udpSocket = udp.createSocket();
+        this.udpSocket.on('error', this.handleSocketError.bind(this));
     }
 }

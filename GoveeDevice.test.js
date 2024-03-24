@@ -41,15 +41,25 @@ export default class GoveeDevice
         try
         {
             let goveeResponse = JSON.parse(message.data);
-            if (goveeResponse.msg.cmd == 'scan')
+            if (goveeResponse.hasOwnProperty('msg'))
             {
-                this.update(goveeResponse.msg.data);
-            } else if (goveeResponse.msg.cmd == 'status' || goveeResponse.msg.cmd == 'devStatus')
-            {   
-                this.updateStatus(goveeResponse.msg.data);
-            } else
-            {
-                device.log('Received other data');
+                switch(goveeResponse.msg.cmd)
+                {
+                    case 'scan':
+                        this.update(goveeResponse.msg.data);
+                        break;
+                    case 'status':
+                    case 'devStatus':
+                        this.updateStatus(goveeResponse.msg.data);
+                        break;
+                    case 'disconnect':
+                        this.disconnectSocket();
+                        break;
+                    default:
+                        device.log('Received unknown command');
+                        device.log(message.data);
+                        break;
+                }
             }
         } catch(err)
         {
@@ -75,6 +85,11 @@ export default class GoveeDevice
         // service.log(this.udpServer.remoteAddress());
     }
 
+    disconnectSocket()
+    {
+        this.udpServer.close();
+    }
+
     setupUdpServer()
     {
         if (this.uniquePort)
@@ -83,11 +98,9 @@ export default class GoveeDevice
             this.udpServer.on('message', this.handleSocketMessage.bind(this));
             this.udpServer.on('error', this.handleSocketError.bind(this));
             this.udpServer.on('listening', this.handleListening.bind(this));
-            // this.udpServer.on('connection', this.handleConnection.bind(this));
 
             // Listen to this device specific port
             this.udpServer.bind(this.uniquePort);
-            // this.udpServer.connect(this.ip, this.port);
         }
     }
 
