@@ -186,16 +186,24 @@ export function DiscoveryService()
     this.handleSocketMessage = function(value)
     {
         if (!value) return;
+        const ip = this.getIPv4(value.address);
 
-        if (this.GoveeDeviceControllers.hasOwnProperty(value.address))
+        if (this.GoveeDeviceControllers.hasOwnProperty(ip))
         {
-            let goveeController = this.GoveeDeviceControllers[value.address];
+            let goveeController = this.GoveeDeviceControllers[ip];
             goveeController.relaySocketMessage(value);
         } else
         {
-            service.log(`Cannot find controller for ${value.address}`);
+            service.log(`Cannot find controller for ${ip}`);
         }
 	};
+
+    this.getIPv4 = function(address)
+    {
+        const ipv4Pattern = /(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)\.(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)\.(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)\.(\b25[0-5]|\b2[0-4][0-9]|\b[01]?[0-9][0-9]?)/;
+        const match = address.match(ipv4Pattern);
+        return match ? match[0] : null;
+    }
 
     this.Delete = function(ip)
     {
