@@ -98,7 +98,6 @@ export default class GoveeDeviceUI
                 {
                     case 3:
                         RGBData = this.getRGBFromSubdevices();
-                        this.device.log(RGBData.length);
                         break;
                     case 4:
                         if (this.device.getLedCount() == 0) return;
