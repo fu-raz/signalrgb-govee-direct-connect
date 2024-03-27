@@ -237,9 +237,9 @@ export function DiscoveryService()
 
     this.getUniquePort = function()
     {
-        if (!this.lastPort)
+        if (!this.lastPort || this.lastPort < 46920)
         {
-            this.lastPort = 42069;
+            this.lastPort = 46920;
         } else
         {
             this.lastPort++;
