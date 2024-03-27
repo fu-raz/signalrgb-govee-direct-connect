@@ -91,7 +91,9 @@ export function DiscoveryService()
     this.convertSettings = function()
     {
         let oldSettingsData = service.getSetting('GoveeDirectConnect', 'devices');
-        if(oldSettingsData !== undefined)
+        let newSettingsData = service.getSetting('ipCache', 'cache');
+
+        if(oldSettingsData !== undefined && !newSettingsData)
         {
             service.log('Found old settings');
             let oldSettings = JSON.parse(oldSettingsData);
@@ -108,7 +110,7 @@ export function DiscoveryService()
 
             this.saveCache();
 
-            this.removeSetting('GoveeDirectConnect', 'devices');
+            // service.removeSetting('GoveeDirectConnect', 'devices');
         }
     }
 
