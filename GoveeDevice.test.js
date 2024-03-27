@@ -4,6 +4,8 @@ import udp from "@SignalRGB/udp";
 const RAZER_ON = 'uwABsgEJ';
 const RAZER_OFF = 'uwABsgAI';
 
+const DREAMVIEW_ON = 'uwAZsgEHADwPAQQPAQIPAQQPAQQPAQIPAQIPAQAi';
+
 export default class GoveeDevice
 {
     constructor(data)
@@ -205,7 +207,7 @@ export default class GoveeDevice
 
         if (this.pt !== receivedData.pt)
         {
-            if (receivedData.pt == RAZER_OFF || receivedData.pt == RAZER_ON)
+            if (receivedData.pt == RAZER_OFF || receivedData.pt == RAZER_ON || receivedData.pt == DREAMVIEW_ON)
             {
                 device.log(`Changed pt from ${this.pt} to ${receivedData.pt}`);
                 this.pt = receivedData.pt;
@@ -424,7 +426,7 @@ export default class GoveeDevice
                         // If not single color
                         if (this.type !== 3)
                         {
-                            if (this.pt !== RAZER_ON)
+                            if (this.pt !== RAZER_ON || this.pt !== DREAMVIEW_ON)
                             {
                                 device.log('Sending `razer on` command');
                                 this.send(this.getRazerModeCommand(true));
