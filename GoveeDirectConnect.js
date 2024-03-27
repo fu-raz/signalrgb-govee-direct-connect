@@ -527,7 +527,7 @@ class GoveeDevice
 
     turnOff()
     {
-        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        this.send( this.getSolidColorCommand( [ [0,0,0] ] ) );
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
     }
 
