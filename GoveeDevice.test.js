@@ -447,17 +447,26 @@ export default class GoveeDevice
                 return
             }
 
-            if (this.brightness !== device.Brightness)
-            {
-                device.log('Setting brightness');
-                this.setBrightness(device.Brightness);
-            }
-
             if (this.onOff)
             {
-                // Send RGB command first, then do calculations and stuff later
-                let colorCommand = this.getColorCommand(colors);
-                this.send(colorCommand);
+                // Check brightness if device is on
+                if (this.brightness !== device.Brightness)
+                {
+                    device.log('Setting brightness');
+                    this.setBrightness(device.Brightness);
+                }
+
+                try
+                {
+                    // Send RGB command first, then do calculations and stuff later
+                    let colorCommand = this.getColorCommand(colors);
+                    this.send(colorCommand);
+                } catch(ex)
+                {
+                    device.error(ex.message);
+                    device.error(colors);
+                }
+                
 
                 frameDelay = parseInt(frameDelay);
                 if (frameDelay > 0)
@@ -471,6 +480,8 @@ export default class GoveeDevice
     setBrightness(percentage)
     {
         this.send({msg: { cmd: 'brightness', data: { value: percentage }}});
+        // Lets assume it gets set correctly
+        this.brightness = percentage;
         device.log(`Setting brightness to ${percentage}%`);
     }
 
