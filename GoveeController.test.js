@@ -64,17 +64,17 @@ export default class GoveeController
 
     sendToDevice(data)
     {
-        if (!this.udpSocket)
-        {
-            this.setupUDPSocket();
-        }
+        this.setupUDPSocket();
         this.udpSocket.write(data, '127.0.0.1', this.device.uniquePort);
     }
 
     setupUDPSocket()
     {
-        service.log('Creating udp socket for controller ' + this.id);
-        this.udpSocket = udp.createSocket();
-        this.udpSocket.on('error', this.handleSocketError.bind(this));
+        if (!this.udpSocket)
+        {
+            service.log('Creating udp socket for controller ' + this.id);
+            this.udpSocket = udp.createSocket();
+            this.udpSocket.on('error', this.handleSocketError.bind(this));
+        }
     }
 }

@@ -7,6 +7,8 @@ const RAZER_OFF = 'uwABsgAI';
 const DREAMVIEW_ON = 'uwAZsgEHADwPAQQPAQIPAQQPAQQPAQIPAQIPAQAi';
 const DREAMVIEW_OFF = 'uwAZsgAHADwPAQQPAQIPAQQPAQQPAQIPAQIPAQAj';
 
+const PROTOCOL_SINGLE_COLOR = 3;
+
 export default class GoveeDevice
 {
     constructor(data)
@@ -91,12 +93,15 @@ export default class GoveeDevice
     disconnectSocket()
     {
         this.udpServer.close();
+        this.udpServer = null;
     }
 
     setupUdpServer()
     {
         if (this.uniquePort)
         {
+            if (this.udpServer) return;
+
             this.udpServer = udp.createSocket();
             this.udpServer.on('message', this.handleSocketMessage.bind(this));
             this.udpServer.on('error', this.handleSocketError.bind(this));
@@ -217,6 +222,9 @@ export default class GoveeDevice
                 this.pt = receivedData.pt;
             } else
             {
+                // There's no need for this in single color mode
+                if (this.type == PROTOCOL_SINGLE_COLOR) return;
+
                 device.log('Received weird PT data');
                 device.log(receivedData.pt);
             }
@@ -428,9 +436,9 @@ export default class GoveeDevice
                     {
                         // Make sure device is on before sending more commands
                         // If not single color
-                        if (this.type !== 3)
+                        if (this.type !== PROTOCOL_SINGLE_COLOR)
                         {
-                            if (this.pt == RAZER_OFF || this.pt == DREAMVIEW_OFF)
+                            if (this.pt !== RAZER_ON && this.pt !== DREAMVIEW_ON)
                             {
                                 device.log('Sending `razer on` command');
                                 this.send(this.getRazerModeCommand(true));
@@ -496,7 +504,7 @@ export default class GoveeDevice
         if (now - this.lastRender > 10000)
         {
             // Turn off Razer mode
-            if (this.pt == RAZER_ON)
+            if (this.pt == RAZER_ON || this.pt == DREAMVIEW_ON)
             {
                 device.log('Sending `razer off` command');
                 this.send(this.getRazerModeCommand(false));

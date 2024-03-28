@@ -273,6 +273,9 @@ export function DiscoveryService()
 
         // Create and store controller for network tab
         let goveeController = new GoveeController(goveeDevice, this);
+
+        // Start the udp socket?
+        goveeController.setupUDPSocket();
         return goveeController;
     }
 

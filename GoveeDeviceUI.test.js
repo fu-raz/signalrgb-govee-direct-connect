@@ -1,6 +1,8 @@
 import goveeProducts from "./govee-products.test.js";
 import GoveeDevice from "./GoveeDevice.test.js";
 
+const PROTOCOL_SINGLE_COLOR = 3;
+
 export default class GoveeDeviceUI
 {
     constructor(device, controller)
@@ -24,44 +26,9 @@ export default class GoveeDeviceUI
 
         this.lastRender = 0;
         this.notifyId = 0;
-
-        if (this.goveeDevice.testMode)
-        {
-            this.notifyId = this.device.notify('Govee device is waiting to connect', 'Please wait', 0);
-            this.log('Govee device is in test mode');
-            this.device.setSize([1, 1]);
-            this.device.setControllableLeds(['Test color'], [ [0,0] ]);
-        } else
-        {
-            this.device.denotify(this.notifyId);
-            this.createLedMap(this.ledCount);
-            switch(this.goveeDevice.split)
-            {
-                case 3:
-                    this.log('This should be two subdevices');
-                    this.device.SetIsSubdeviceController(true);
-                    for (let num = 1; num <=2; num++)
-                    {
-                        let subDeviceId = `${this.goveeDevice.id}:${num}`;
-                        this.device.createSubdevice(subDeviceId);
-                        this.device.setSubdeviceName(subDeviceId, `${this.goveeDevice.getName()}`);
-                        this.device.setSubdeviceImage(subDeviceId, '');
-                        this.device.setSubdeviceSize(subDeviceId, this.ledCount, 1);
-                        this.device.setSubdeviceLeds(subDeviceId, this.ledNames, this.ledPositions);
-
-                        this.subDevices.push(subDeviceId);
-                    }
-                    break;
-                case 4:
-                    this.device.SetLedLimit(this.ledCount);
-                    this.device.addChannel(this.goveeDevice.sku, this.ledCount);
-                    break;
-                default:
-                    this.device.setSize([this.controller.device.leds, 1]);
-                    this.device.setControllableLeds(this.ledNames, this.ledPositions);
-                    break;
-            }
-        }
+        
+        this.device.denotify(this.notifyId);
+        this.setupLeds();
     }
 
     getImage(sku)
@@ -75,6 +42,43 @@ export default class GoveeDeviceUI
         this.device.log(data);
     }
     
+    setupLeds()
+    {
+        // If it's only a single color
+        if (this.goveeDevice.type == PROTOCOL_SINGLE_COLOR)
+        {
+            this.ledCount = 1;
+        }
+
+        this.createLedMap(this.ledCount);
+        switch(this.goveeDevice.split)
+        {
+            case 3:
+                this.log('This should be two subdevices');
+                this.device.SetIsSubdeviceController(true);
+                for (let num = 1; num <=2; num++)
+                {
+                    let subDeviceId = `${this.goveeDevice.id}:${num}`;
+                    this.device.createSubdevice(subDeviceId);
+                    this.device.setSubdeviceName(subDeviceId, `${this.goveeDevice.getName()}`);
+                    this.device.setSubdeviceImage(subDeviceId, '');
+                    this.device.setSubdeviceSize(subDeviceId, this.ledCount, 1);
+                    this.device.setSubdeviceLeds(subDeviceId, this.ledNames, this.ledPositions);
+
+                    this.subDevices.push(subDeviceId);
+                }
+                break;
+            case 4:
+                this.device.SetLedLimit(this.ledCount);
+                this.device.addChannel(this.goveeDevice.sku, this.ledCount);
+                break;
+            default:
+                this.device.setSize([this.controller.device.leds, 1]);
+                this.device.setControllableLeds(this.ledNames, this.ledPositions);
+                break;
+        }
+    }
+
     createLedMap(count)
     {
         this.ledNames = [];
