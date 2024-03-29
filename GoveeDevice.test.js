@@ -1,12 +1,6 @@
 import {encode, decode} from "@SignalRGB/base64";
 import udp from "@SignalRGB/udp";
 
-const RAZER_ON = 'uwABsgEJ';
-const RAZER_OFF = 'uwABsgAI';
-
-const DREAMVIEW_ON = 'uwAZsgEHADwPAQQPAQIPAQQPAQQPAQIPAQIPAQAi';
-const DREAMVIEW_OFF = 'uwAZsgAHADwPAQQPAQIPAQQPAQQPAQIPAQIPAQAj';
-
 const PROTOCOL_SINGLE_COLOR = 3;
 
 export default class GoveeDevice
@@ -30,10 +24,12 @@ export default class GoveeDevice
         
         this.brightness = 100;
         this.onOff = 0;
-        this.pt = RAZER_OFF;
+        this.pt = null;
         this.port = 4003;
         this.statusPort = 4001;
         this.enabled = true;
+
+        this.razerOn = false;
 
         this.lastRender = 0;
         this.lastStatus = 0;
@@ -213,21 +209,8 @@ export default class GoveeDevice
 
         if (this.pt !== receivedData.pt)
         {
-            if (receivedData.pt == RAZER_OFF || 
-                receivedData.pt == RAZER_ON || 
-                receivedData.pt == DREAMVIEW_OFF ||
-                receivedData.pt == DREAMVIEW_ON)
-            {
-                device.log(`Changed pt from ${this.pt} to ${receivedData.pt}`);
-                this.pt = receivedData.pt;
-            } else
-            {
-                // There's no need for this in single color mode
-                if (this.type == PROTOCOL_SINGLE_COLOR) return;
-
-                device.log('Received weird PT data');
-                device.log(receivedData.pt);
-            }
+            this.pt = receivedData.pt;
+            this.decodePTData(receivedData.pt);
         }
     }
 
@@ -278,6 +261,19 @@ export default class GoveeDevice
             case 4:
                 logger.log(`Split: Custom components`);
                 break;
+        }
+    }
+
+    decodePTData(pt)
+    {
+        if (pt !== null)
+        {
+            const byteArrayPt = decode(pt);
+            if (byteArrayPt[3] == 0xb2)
+            {
+                this.razerOn = (byteArrayPt[4] == 0x01) ? true : false;
+                if (this.razerOn) device.log('Turned razer mode on');
+            }
         }
     }
 
@@ -438,7 +434,7 @@ export default class GoveeDevice
                         // If not single color
                         if (this.type !== PROTOCOL_SINGLE_COLOR)
                         {
-                            if (this.pt !== RAZER_ON && this.pt !== DREAMVIEW_ON)
+                            if (!this.razerOn)
                             {
                                 device.log('Sending `razer on` command');
                                 this.send(this.getRazerModeCommand(true));
@@ -504,7 +500,7 @@ export default class GoveeDevice
         if (now - this.lastRender > 10000)
         {
             // Turn off Razer mode
-            if (this.pt == RAZER_ON || this.pt == DREAMVIEW_ON)
+            if (this.razerOn)
             {
                 device.log('Sending `razer off` command');
                 this.send(this.getRazerModeCommand(false));
@@ -538,7 +534,8 @@ export default class GoveeDevice
         // Turn device off
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
 
-        this.pt = RAZER_OFF;
+        this.pt = null;
+        this.razerOn = false;
         this.onOff = 0;
     }
 
