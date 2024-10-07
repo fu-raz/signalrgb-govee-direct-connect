@@ -182,7 +182,7 @@ export function DiscoveryService()
 
     this.handleSocketError = function(err, message)
     {
-        service.error(message);
+        service.log(message);
     }
 
     this.handleSocketMessage = function(value)
