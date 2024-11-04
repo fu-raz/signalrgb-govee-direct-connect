@@ -413,8 +413,8 @@ export default class GoveeDevice
                 return;
             }
     
-            // Every 5 seconds check if we need to enable razer
-            if (now - this.lastRender > 9 * 1000)
+            // Every 20 seconds check if we need to enable razer
+            if (now - this.lastRender > 20 * 1000)
             {
                 // Check if we have the device data already
                 if (this.id == null)
@@ -457,13 +457,17 @@ export default class GoveeDevice
                 return
             }
 
-            if (this.onOff)
+            // If the device is on or we don't have any data yet (we just assume its on)
+            if (this.onOff || this.id == null)
             {
-                // Check brightness if device is on
-                if (this.brightness !== device.Brightness)
+                if (this.id !== null)
                 {
-                    device.log('Setting brightness');
-                    this.setBrightness(device.Brightness);
+                    // Check brightness if device is on
+                    if (this.brightness !== device.Brightness)
+                    {
+                        device.log('Setting brightness');
+                        this.setBrightness(device.Brightness);
+                    }
                 }
 
                 try
