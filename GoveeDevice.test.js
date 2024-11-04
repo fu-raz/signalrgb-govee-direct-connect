@@ -449,16 +449,36 @@ export default class GoveeDevice
                 return
             }
 
-            // Every 5 seconds check the status
-            if (now - this.lastStatus > 5 * 1000)
+            // Every 10 seconds check the status
+            if (this.id !== null && now - this.lastStatus > 10 * 1000)
             {
                 this.getStatus();
                 this.lastStatus = now;
                 return
             }
 
+            // We're just going to assume some things
+            // This is because the device sometimes refuses to send us info
+            if (this.id == null)
+            {
+                if (!this.onOff)
+                {
+                    this.turnOn();
+                    this.onOff = true;
+                }
+
+                if (this.type !== PROTOCOL_SINGLE_COLOR)
+                {
+                    if (!this.razerOn)
+                    {
+                        this.send(this.getRazerModeCommand(true));
+                        this.razerOn = true;
+                    }
+                }
+            }
+
             // If the device is on or we don't have any data yet (we just assume its on)
-            if (this.onOff || this.id == null)
+            if (this.onOff)
             {
                 if (this.id !== null)
                 {
