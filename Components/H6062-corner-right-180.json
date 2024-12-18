@@ -8,8 +8,8 @@
     "Height": 2,
     "LedMapping" : [ 0, 2, 1 ],
     "LedCoordinates" : [
-               [1,1], 
-        [0,0], [0,1]
+               [1,0], 
+        [0,1], [1,1]
     ],
     "LedNames" : [
         "Led 1",

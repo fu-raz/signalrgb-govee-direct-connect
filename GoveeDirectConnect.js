@@ -209,6 +209,7 @@ export function DiscoveryService()
 
     this.Delete = function(ip)
     {
+        service.log('Deleting controller ' + ip);
         this.removeController(ip);
         this.saveCache();
         this.Update(true);
@@ -222,10 +223,8 @@ export function DiscoveryService()
             let goveeController = this.GoveeDeviceControllers[ip];
             ipCache[goveeController.id] = goveeController.toCacheJSON();
         }
-        if (Object.keys(ipCache).length > 0)
-        {
-            service.saveSetting('ipCache', 'cache', JSON.stringify(ipCache));
-        }
+
+        service.saveSetting('ipCache', 'cache', JSON.stringify(ipCache));
     }
 
     this.removeController = function(ip)

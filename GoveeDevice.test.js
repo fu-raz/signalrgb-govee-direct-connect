@@ -9,7 +9,7 @@ export default class GoveeDevice
     {
         if (data)
         {
-            this.id = (data.hasOwnProperty('id')) ? data.id : null;
+            this.id = (data.hasOwnProperty('id')) ? data.id : data.ip;
             this.ip = data.ip;
             this.leds = parseInt(data.leds);
             this.type = parseInt(data.type);
