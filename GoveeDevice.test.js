@@ -9,7 +9,7 @@ export default class GoveeDevice
     {
         if (data)
         {
-            this.id = (data.hasOwnProperty('id')) ? data.id : data.ip;
+            this.id = (data.hasOwnProperty('id')) ? data.id : null;
             this.ip = data.ip;
             this.leds = parseInt(data.leds);
             this.type = parseInt(data.type);
@@ -22,7 +22,6 @@ export default class GoveeDevice
 
         this.testMode = (!this.id);
         
-        this.brightness = 100;
         this.onOff = 0;
         this.pt = null;
         this.port = 4003;
@@ -35,6 +34,8 @@ export default class GoveeDevice
         this.lastStatus = 0;
         this.lastDeviceDataCheck = 0;
         this.lastSingleColor = '';
+
+        this.hasChanged = false;
     }
 
     handleSocketMessage(message)
@@ -57,33 +58,33 @@ export default class GoveeDevice
                         this.disconnectSocket();
                         break;
                     default:
-                        device.log('Received unknown command');
-                        device.log(message.data);
+                        this.log('Received unknown command');
+                        this.log(message.data);
                         break;
                 }
             }
         } catch(err)
         {
-            device.log(err.message);
+            this.log(err.message);
         }
     }
 
     handleSocketError(errorId, errorMessage)
     {
-        device.error(errorMessage);
+        this.log(errorMessage);
     }
 
     handleListening()
     {
         const address = this.udpServer.address();
-        device.log(`Started listening on`);
-        device.log(address);
+        this.log(`Started listening on`);
+        this.log(address);
     }
 
     handleConnection()
     {
-        // service.log('Connected to');
-        // service.log(this.udpServer.remoteAddress());
+        // this.log('Connected to');
+        // this.log(this.udpServer.remoteAddress());
     }
 
     disconnectSocket()
@@ -122,14 +123,25 @@ export default class GoveeDevice
             service.saveSetting(this.id, 'name', this.name);
             service.saveSetting(this.id, 'uniquePort', this.uniquePort);
 
-            service.log('Saved device');
+            this.log('Saved device');
             this.printDetails(service);
         } else
         {
-            service.log('Data not yet received by device, saving device data later');
+            this.log('Data not yet received by device, saving device data later');
         }
 
         return this;
+    }
+
+    log(text)
+    {
+        if (typeof service !== 'undefined')
+        {
+            service.log(text);
+        } else
+        {
+            device.log(text)
+        }
     }
 
     toCacheJSON()
@@ -157,7 +169,7 @@ export default class GoveeDevice
         this.name       = service.getSetting(id, 'name');
         this.uniquePort = service.getSetting(id, 'uniquePort');
 
-        service.log('Loaded device');
+        this.log('Loaded device');
         this.printDetails(service);
 
         return this;
@@ -189,21 +201,15 @@ export default class GoveeDevice
         {
             this.name       = this.generateName();
             this.testMode   = false;
-            this.save();
+            this.hasChanged = hasChanged;
         }
     }
 
     updateStatus(receivedData)
     {
-        if (this.brightness !== receivedData.brightness)
-        {
-            device.log(`Changed brightness from ${this.brightness} to ${receivedData.brightness}`);
-            this.brightness = receivedData.brightness;
-        }
-
         if (this.onOff !== receivedData.onOff)
         {
-            device.log(`Changed onOff from ${this.onOff} to ${receivedData.onOff}`);
+            this.log(`Changed onOff from ${this.onOff} to ${receivedData.onOff}`);
             this.onOff = receivedData.onOff;
         }
 
@@ -272,7 +278,7 @@ export default class GoveeDevice
             if (byteArrayPt[3] == 0xb2)
             {
                 this.razerOn = (byteArrayPt[4] == 0x01) ? true : false;
-                if (this.razerOn) device.log('Turned razer mode on');
+                if (this.razerOn) this.log('Turned razer mode on');
             }
         }
     }
@@ -285,7 +291,7 @@ export default class GoveeDevice
 
     requestDeviceData()
     {
-        device.log('Asking device for device data');
+        this.log('Asking device for device data');
         const deviceDataRequestPacket = {msg: { cmd: 'scan', data: {account_topic: 'reserve'} }};
         this.send(deviceDataRequestPacket, this.statusPort)
     }
@@ -421,26 +427,6 @@ export default class GoveeDevice
                 {
                     // There's no unique ID, so we need to get that data
                     this.requestDeviceData();
-                } else
-                {
-                    // Turn device on if it's off
-                    if (!this.onOff)
-                    {
-                        device.log('Sending `turn on` command');
-                        this.turnOn();
-                    } else
-                    {
-                        // Make sure device is on before sending more commands
-                        // If not single color
-                        if (this.type !== PROTOCOL_SINGLE_COLOR)
-                        {
-                            if (!this.razerOn)
-                            {
-                                device.log('Sending `razer on` command');
-                                this.send(this.getRazerModeCommand(true));
-                            }
-                        }
-                    }
                 }
                 
                 this.lastRender = now;
@@ -459,37 +445,24 @@ export default class GoveeDevice
 
             // We're just going to assume some things
             // This is because the device sometimes refuses to send us info
-            if (this.id == null)
+            if (!this.onOff)
             {
-                if (!this.onOff)
-                {
-                    this.turnOn();
-                    this.onOff = true;
-                }
+                this.turnOn();
+                this.onOff = true;
+            }
 
-                if (this.type !== PROTOCOL_SINGLE_COLOR)
+            if (this.type !== PROTOCOL_SINGLE_COLOR)
+            {
+                if (!this.razerOn)
                 {
-                    if (!this.razerOn)
-                    {
-                        this.send(this.getRazerModeCommand(true));
-                        this.razerOn = true;
-                    }
+                    this.send(this.getRazerModeCommand(true));
+                    this.razerOn = true;
                 }
             }
 
             // If the device is on or we don't have any data yet (we just assume its on)
             if (this.onOff)
             {
-                if (this.id !== null)
-                {
-                    // Check brightness if device is on
-                    if (this.brightness !== device.Brightness)
-                    {
-                        device.log('Setting brightness');
-                        this.setBrightness(device.Brightness);
-                    }
-                }
-
                 try
                 {
                     // Send RGB command first, then do calculations and stuff later
@@ -511,14 +484,6 @@ export default class GoveeDevice
         }
     }
 
-    setBrightness(percentage)
-    {
-        this.send({msg: { cmd: 'brightness', data: { value: percentage }}});
-        // Lets assume it gets set correctly
-        this.brightness = percentage;
-        device.log(`Setting brightness to ${percentage}%`);
-    }
-
     singleColor(color, now)
     {
         if (now - this.lastRender > 10000)
@@ -526,7 +491,7 @@ export default class GoveeDevice
             // Turn off Razer mode
             if (this.razerOn)
             {
-                device.log('Sending `razer off` command');
+                this.log('Sending `razer off` command');
                 this.send(this.getRazerModeCommand(false));
             }
 
@@ -539,7 +504,7 @@ export default class GoveeDevice
         {
             this.lastSingleColor = jsonColor;
             let colorCommand = this.getSolidColorCommand([color]);
-            device.log('Sending new color code ' + JSON.stringify(colorCommand));
+            this.log('Sending new color code ' + JSON.stringify(colorCommand));
             this.send({msg: colorCommand});
         }
     }

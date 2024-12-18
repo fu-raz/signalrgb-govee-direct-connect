@@ -54,7 +54,19 @@ export default class GoveeController
     {
         if (this.device.uniquePort)
         {
+            // Let the device handle the received message
+            this.device.handleSocketMessage(value);
+            if (this.device.hasChanged)
+            {
+                this.device.save();
+                this.device.hasChanged = false;
+
+                // Save the new data to the cache
+                this.discovery.saveCache();
+            }
+
             let goveeResponse = JSON.parse(value.data);
+            // Also send to device for realtime changes
             this.sendToDevice(goveeResponse);
         } else
         {
