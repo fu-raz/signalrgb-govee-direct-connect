@@ -114,13 +114,13 @@ export function DiscoveryService()
         }
     }
 
-    this.forceDiscover = function(ip, leds, type)
+    this.forceDiscover = function(ip, leds, type, split)
     {
         let goveeLightData = { 
             ip: ip,
             leds: parseInt(leds),
             type: parseInt(type),
-            split: 1,
+            split: split,
             uniquePort: this.getUniquePort()
         };
 

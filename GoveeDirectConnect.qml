@@ -132,6 +132,36 @@ Item {
 				}
 			}
 
+			Rectangle {
+				width: 200
+				height: 30
+				radius: 2
+				border.color: "#444444"
+				border.width: 2
+				color: "#141414"
+				
+				ComboBox {
+					y: 0
+					id: splitDevice
+					width: parent.width
+					height: 30
+					font.family: "Poppins"
+					font.bold: true
+					flat: true
+					model: ListModel {
+						ListElement { key: "Single device"; value: 1}
+						ListElement { key: "Duplicate"; value: 2}
+						ListElement { key: "Two devices"; value: 3}
+						ListElement { key: "Custom components"; value: 4}
+					}
+					textRole: "key"
+					valueRole: "value"
+					topInset: 0
+					bottomInset: 0
+					verticalPadding: 0
+				}
+			}
+
 			// Item {
 			// 	width: 90
 			// 	height: 30
@@ -175,7 +205,7 @@ Item {
 					text: "Add"
 					anchors.right: parent.center
 					onClicked: {
-						discovery.forceDiscover(discoverIP.text, ledCount.text, lightType.currentValue);
+						discovery.forceDiscover(discoverIP.text, ledCount.text, lightType.currentValue, splitDevice.currentValue);
 					}
 				}
 			}
