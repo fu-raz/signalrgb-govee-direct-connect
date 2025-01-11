@@ -29,6 +29,8 @@ export default class GoveeDeviceUI
         
         this.device.denotify(this.notifyId);
         this.setupLeds();
+
+        this.setupTestProperty();
     }
 
     getImage(sku)
@@ -79,6 +81,20 @@ export default class GoveeDeviceUI
         }
     }
 
+    setupTestProperty()
+    {
+        this.device.addProperty({
+            "property":"testLedCount",
+            "group":"lighting",
+            "label":"Test led count",
+            "step":"1",
+            "type":"number",
+            "min":"1",
+            "max": this.ledCount,
+            "default": this.ledCount,
+            "live" : true});
+    }
+
     createLedMap(count)
     {
         this.ledNames = [];
@@ -91,10 +107,31 @@ export default class GoveeDeviceUI
         }
     }
 
+    getTestRGBData(ledCount)
+    {
+        const result = [];
+  
+        for (let i = 0; i < ledCount; i++)
+        {
+            if (i % 2 === 0)
+            {
+                result.push([255, 0, 0]);
+            } else {
+                result.push([0, 0, 255]);
+            }
+        }
+        
+        return result;
+    }
+
     render(lightingMode, forcedColor, now, frameDelay)
     {
         switch(lightingMode)
         {
+            case "Test Pattern":
+                let TestRGBData = this.getTestRGBData(parseInt(testLedCount));
+                this.goveeDevice.sendRGB(TestRGBData, now, frameDelay);
+                break;
             case "Canvas":
                 let RGBData = [];
 

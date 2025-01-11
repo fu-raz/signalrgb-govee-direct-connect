@@ -516,16 +516,14 @@ export default class GoveeDevice
 
     turnOff()
     {
-        this.enabled = false;
-        // Set color to black
-        this.singleColor([0,0,0], 0);
-
-        // Turn device off
-        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
-
         this.pt = null;
         this.razerOn = false;
         this.onOff = 0;
+        this.enabled = false;
+        // Set color to black
+        this.singleColor([0,0,0], 0);
+        // Turn device off
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
     }
 
     turnOn()
