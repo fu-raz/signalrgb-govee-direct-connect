@@ -162,30 +162,6 @@ Item {
 				}
 			}
 
-			// Item {
-			// 	width: 90
-			// 	height: 30
-			// 	Rectangle {
-			// 		width: parent.width
-			// 		height: 30
-			// 		color: "#D65A00"
-			// 		radius: 2
-			// 	}
-			// 	ToolButton {
-			// 		height: 30
-			// 		width: parent.width
-			// 		anchors.verticalCenter: parent.verticalCenter
-			// 		font.family: "Poppins"
-			// 		font.bold: true
-			// 		icon.source: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA40lEQVQ4jZWS4XHCMAxGn3VdICukI3QFWIERYISuQEcII9AVMgIrkBHIBp/4EdEaEwP57nTyydazZBkKubRyyTNblWeqcqktkm/W1nKsEh+AQ/inqgH6ZLYD+ry6JYBSLXB26eLS3qVmKWAEfsN/B6xdBEhmm2T2CeyABji51Hy8CfhTMju4BNBFNf/Kxnh2qQs/O8bYu9QAL/+BS0eX/O4NktkArIuz64jPt1RWEMv8xiGD37XA9Jgvy39ow6VtxPb5FEam71vTeEtmmsAI/CSXuidJuRrgK2uvB4bkkr8JmNUV4XrdYTAY354AAAAASUVORK5CYII="
-			// 		text: "Test"
-			// 		anchors.right: parent.center
-			// 		onClicked: {
-			// 			discovery.testDiscover(discoverIP.text, ledCount.text, lightType.currentValue);
-			// 		}
-			// 	}
-			// }
-
 			Item {
 				Rectangle {
 					width: 90
@@ -237,7 +213,7 @@ Item {
 		delegate:
 		Item {
 			id: root
-			width: 520
+			width: 600
 			height: content.height
 
 			property var controller: model.modelData.obj
@@ -290,40 +266,29 @@ Item {
 							
 						}
 					}
-
-				// 	Item {
-				// 		x: parent.width - 60
-				// 		y: 0
-
-				// 		Rectangle {
-							
-				// 			width: 30
-				// 			height: 30
-				// 			color: "#003000"
-				// 			radius: 2
-						
-				// 			ToolButton {
-				// 				id: onOff
-				// 				width: parent.width
-				// 				height: parent.height
-				// 				anchors.verticalCenter: parent.verticalCenter
-				// 				font.family: "Poppins"
-				// 				font.bold: true
-				// 				icon.source: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA6klEQVQ4jZVSURXCMAy8xUEtzMKQgIVZmAUsYAEkbBJAAkjoJGwOLvykvFC6Mu69vL4m1+u1CVCBklHJWONIrbgHbwEleyXHH446JW9KhrxwVFKVXJRsXf7jCUqejXfLBaIVukI+ZrnRuIO3rkqeC5ZLAsGcxvQHvdWutfcnNCIrgAlAq2QnADoAayMy7xEwPG1tUxfWPw57BAEwm51QIBwscqROzb41fYFYhOtagJKtbeKGi/zwYPyLT54sOdZEbOAWi69pHJ2TwRNshC9uWo9bNyQnW/Hwow4ATUEkABgA+FtmAFMjcs/5L6AYHte9jR/tAAAAAElFTkSuQmCC"
-				// 				text: ""
-				// 				anchors.right: parent.center
-				// 				onClicked: {
-				// 					controller.deviceInstance.turnOn();
-				// 				}
-				// 			}
-				// 		}
-				// 	}
 				}
 
 				Row {
 					width: parent.width
+					height: 20
 
 					Text {
+						height: parent.height
+						verticalAlignment: Text.AlignVCenter
+						color: theme.primarytextcolor
+						text: "IP: " + controller.device.ip
+						font.pixelSize: 14
+						font.family: "Poppins"
+					}
+				}
+
+				Row {
+					width: parent.width
+					height: 20
+
+					Text {
+						height: parent.height
+						verticalAlignment: Text.AlignVCenter
 						color: theme.primarytextcolor
 						text: "Type: " + (controller.device.sku ? controller.device.sku : "Unknown")
 						font.pixelSize: 14
@@ -333,8 +298,11 @@ Item {
 
 				Row {
 					width: parent.width
+					height: 20
 
 					Text {
+						height: parent.height
+						verticalAlignment: Text.AlignVCenter
 						color: theme.primarytextcolor
 						text: "Device id: " + (controller.device.id ? controller.device.id : "Unknown")
 						font.pixelSize: 14
@@ -344,17 +312,21 @@ Item {
 
 				Row {
 					width: parent.width
+					height: 20
 
 					Text {
+						height: parent.height
+						verticalAlignment: Text.AlignVCenter
 						color: theme.primarytextcolor
 						text: "Firmware: " + (controller.device.firmware ? controller.device.firmware : "Unknown")
 						font.pixelSize: 14
 						font.family: "Poppins"
-						bottomPadding: 25
+						// bottomPadding: 25
 					}
 				}
 
 				Row {
+					topPadding: 15
 					spacing: 10
 					Text {
 						color: theme.primarytextcolor
@@ -426,7 +398,7 @@ Item {
 							}
 							onTextEdited: {
 								// service.log(service);
-								updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue);
+								updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue, changeIPAddressTo.text);
 							}
 						}
 					}
@@ -460,7 +432,7 @@ Item {
 							verticalPadding: 0
 							currentIndex: controller.device.type - 1
 							onActivated: {
-								updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue);
+								updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue, changeIPAddressTo.text);
 							}
 						}
 					}
@@ -494,7 +466,7 @@ Item {
 							verticalPadding: 0
 							currentIndex: controller.device.split - 1
 							onActivated: {
-								updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue);
+								updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue, changeIPAddressTo.text);
 							}
 						}
 					}
@@ -541,7 +513,7 @@ Item {
 							onClicked: {
 								if (this.enabled) // dunno if this is needed btw
 								{
-									controller.updateDevice(ledCount.text, lightType.currentValue, splitDevice.currentValue, splitDevice.currentValue);
+									controller.updateDevice(ledCount.text, lightType.currentValue, splitDevice.currentValue, changeIPAddressTo.text);
 									updateButton.enabled = false;
 								}
 							}
@@ -568,6 +540,92 @@ Item {
 							anchors.right: parent.center
 							onClicked: {
 								discovery.Delete(controller.id);
+							}
+						}
+					}
+
+					Item {
+						width: 130
+						height: 30
+
+						Rectangle {
+							height: parent.height
+							width: parent.width
+							color: "#808000"
+							radius: 2
+						}
+
+						ToolButton {
+							id: changeIPAddressButton
+							height: parent.height
+							width: parent.width
+							anchors.verticalCenter: parent.verticalCenter
+							font.family: "Poppins"
+							font.bold: true
+							icon.source: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA6ElEQVQ4jZWTaxGDMBCEN3GABSxgAQtYoBKoBCzEQmoFJIAEcLDXH73QlB4MZCYzN5Psl71HgJMlZClkeXbHElVCRiEXIUX3ImQQssjAwRJ3mWhSUNQ4gdoM3lviScjagLc7V7K5UNtJXJzUY9HdJIDX8wLACODhvF8tMYBB780AmluFVUi/sy9CBncTsm/p6jTnn7yd9/MdajCsxat6n8UvfAoJAPXRBApZCzlsrc4cNFmbqgNxkQ1VtXcQ8a3FH0BfHACUAJ7O+zEdpAlcNE7TZo2yCNlZ1vqUk9oMxmeKR6kdrivf+Q3AUXasRZoSOwAAAABJRU5ErkJggg=="
+							text: "Change IP"
+							anchors.right: parent.center
+							onClicked: {
+								if (changeIPAddressTextbox.visible)
+								{
+									// We canceled, so change it back
+									changeIPAddressTo.text = controller.device.ip
+									changeIPAddressTextbox.visible = false;
+									changeIPAddressButton.text = "Change IP"
+									updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue, changeIPAddressTo.text);
+								} else
+								{
+									changeIPAddressTextbox.visible = true;
+									changeIPAddressButton.text = "Cancel"
+								}
+							}
+						}
+					}
+
+					Item {
+						visible: false
+						id: changeIPAddressTextbox
+						width: 200
+						height: 30
+
+						Rectangle {
+							height: parent.height
+							width: parent.width
+							radius: 2
+							border.color: "#444444"
+							border.width: 2
+							color: "#141414"
+
+							TextField {
+								height: parent.height
+								width: parent.width - 20
+								leftPadding: 10
+								rightPadding: 10
+								id: changeIPAddressTo
+								color: theme.primarytextcolor
+								font.family: "Poppins"
+								font.bold: true
+								font.pixelSize: 16
+								verticalAlignment: TextInput.AlignVCenter
+								placeholderText: "192.168.0.1"
+								text: controller.device.ip
+								validator: RegularExpressionValidator {
+									regularExpression:  /^((?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])\.){0,3}(?:[0-1]?[0-9]?[0-9]|2[0-4][0-9]|25[0-5])$/
+								}
+								background: Item {
+									width: parent.width
+									height: parent.height
+									Rectangle {
+										color: "transparent"
+										height: 1
+										width: parent.width
+										anchors.bottom: parent.bottom
+									}
+								}
+								onTextEdited: {
+									// service.log(service);
+									updateButton.enabled = controller.validateDeviceUpdate(ledCount.text, lightType.currentValue, splitDevice.currentValue, changeIPAddressTo.text);
+								}
 							}
 						}
 					}

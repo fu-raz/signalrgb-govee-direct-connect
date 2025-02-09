@@ -215,6 +215,15 @@ export function DiscoveryService()
         this.Update(true);
     }
 
+    this.changeIp = function(oldIp, newIp)
+    {
+        if (this.GoveeDeviceControllers.hasOwnProperty(oldIp))
+        {
+            this.GoveeDeviceControllers[newIp] = this.GoveeDeviceControllers[oldIp];
+            this.Delete(oldIp);
+        }
+    }
+
     this.saveCache = function()
     {
         let ipCache = {};
