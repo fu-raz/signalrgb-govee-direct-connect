@@ -321,9 +321,36 @@ export default class GoveeDevice
             case 4:
                 command = this.getRazerLegacyCommand(colors);
                 break;
+            case 5:
+                command = this.getDreamViewV2Command(colors);
+                break;
         }
         
         return { msg: command };
+    }
+
+    getDreamViewV2Command(colors)
+    {
+        let dreamViewV2Header = [0xBB, 0x00, 0x20, 0xB4, 0x01, colors.length];
+        
+        let colorsCommand = dreamViewV2Header;
+        for (let c = 0; c < colors.length; c++)
+        {
+            let color = colors[c];
+            colorsCommand = colorsCommand.concat(color);
+
+            if (c < 36)
+            {
+                colorCommand.push(1);
+            } else
+            {
+                colorsCommand.push(2);
+            }
+        }
+
+        colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
+
+        return {cmd: "razer", data: { pt: encode(colorsCommand) } };
     }
 
     getDreamViewCommand(colors)

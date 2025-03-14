@@ -123,6 +123,7 @@ Item {
 						ListElement { key: "Razer"; value: 2}
 						ListElement { key: "Single color"; value: 3}
 						ListElement { key: "Razer (Legacy)"; value: 4}
+						ListElement { key: "Dreamview V2"; value: 5}
 					}
 					textRole: "key"
 					valueRole: "value"
@@ -424,6 +425,7 @@ Item {
 								ListElement { key: "Razer"; value: 2}
 								ListElement { key: "Single color"; value: 3}
 								ListElement { key: "Razer (Legacy)"; value: 4}
+								ListElement { key: "Dreamview V2"; value: 5}
 							}
 							textRole: "key"
 							valueRole: "value"

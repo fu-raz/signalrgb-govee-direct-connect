@@ -72,7 +72,7 @@ export default class GoveeDeviceUI
                 break;
             case 4:
                 this.device.SetLedLimit(this.ledCount);
-                this.device.addChannel(this.goveeDevice.ip, this.ledCount);
+                this.device.addChannel(`Govee [${this.goveeDevice.id}]`, this.ledCount);
                 break;
             default:
                 this.device.setSize([this.controller.device.leds, 1]);
@@ -142,7 +142,7 @@ export default class GoveeDeviceUI
                         break;
                     case 4:
                         if (this.device.getLedCount() == 0) return;
-                        const channel = this.device.channel(this.goveeDevice.ip);
+                        const channel = this.device.channel(`Govee [${this.goveeDevice.id}]`);
                         RGBData = this.parseChannelColors(channel.getColors('Inline'));
                         break;
                     default:
