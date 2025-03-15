@@ -2,7 +2,7 @@ import {encode, decode} from "@SignalRGB/base64";
 import udp from "@SignalRGB/udp";
 
 const PROTOCOL_SINGLE_COLOR = 3;
-const GRADIENT_OFF_SKUS = new Map([
+const GRADIENT_OFF_SKUS = [
     "H610A",
     "H6056",
     "H6047",
@@ -21,7 +21,7 @@ const GRADIENT_OFF_SKUS = new Map([
     "H6063",
     "H6069",
     "H8069"
-]);
+];
 
 export default class GoveeDevice
 {
@@ -319,7 +319,7 @@ export default class GoveeDevice
     getGradientOff()
     {
         if (this.sku === null) return 1;
-        return !GRADIENT_OFF_SKUS.contains(this.sku);
+        return !GRADIENT_OFF_SKUS.includes(this.sku);
     }
 
     getRazerModeCommand(enable)
