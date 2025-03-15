@@ -319,7 +319,7 @@ export default class GoveeDevice
     getGradientOff()
     {
         if (this.sku === null) return 1;
-        return !GRADIENT_OFF_SKUS.includes(this.sku);
+        return (GRADIENT_OFF_SKUS.includes(this.sku)) ? 0 : 1;
     }
 
     getRazerModeCommand(enable)
@@ -357,30 +357,33 @@ export default class GoveeDevice
 
     getDreamViewV2Command(colors)
     {
-        let dreamViewV2Header = [
-            0xBB,
-            (colors.length >> 8 & 0xFF),
-            (colors.length & 0xFF),
-            0xB4,
+        let collection = [
             this.getGradientOff(),
-            colors.length
+            colors.length,
         ];
         
-        let colorsCommand = dreamViewV2Header;
         for (let c = 0; c < colors.length; c++)
         {
             let color = colors[c];
-            colorsCommand = colorsCommand.concat(color);
+            collection = collection.concat(color);
 
             if (c < 36)
             {
-                colorsCommand.push(1);
+                collection.push(1);
             } else
             {
-                colorsCommand.push(2);
+                collection.push(2);
             }
         }
 
+        let dreamViewHeader = [
+            0xBB,
+            (collection.length >> 8 & 0xFF),
+            (collection.length & 0xFF),
+            0xB4,
+        ];
+
+        let colorsCommand = dreamViewHeader.concat(collection);
         colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
 
         return {cmd: "razer", data: { pt: encode(colorsCommand) } };
@@ -388,22 +391,25 @@ export default class GoveeDevice
 
     getDreamViewCommand(colors)
     {
-        let dreamViewHeader = [
-            0xBB,
-            (colors.length >> 8 & 0xFF),
-            (colors.length & 0xFF),
-            0xB0,
+        let collection = [
             this.getGradientOff(),
-            colors.length
+            colors.length,
         ];
         
-        let colorsCommand = dreamViewHeader;
         for (let c = 0; c < colors.length; c++)
         {
             let color = colors[c];
-            colorsCommand = colorsCommand.concat(color);
+            collection = collection.concat(color);
         }
 
+        let dreamViewHeader = [
+            0xBB,
+            (collection.length >> 8 & 0xFF),
+            (collection.length & 0xFF),
+            0xB0,
+        ];
+
+        let colorsCommand = dreamViewHeader.concat(collection);
         colorsCommand.push( this.calculateXorChecksum(colorsCommand) );
 
         return {cmd: "razer", data: { pt: encode(colorsCommand) } };
