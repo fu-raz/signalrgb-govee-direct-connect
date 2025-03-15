@@ -2,6 +2,26 @@ import {encode, decode} from "@SignalRGB/base64";
 import udp from "@SignalRGB/udp";
 
 const PROTOCOL_SINGLE_COLOR = 3;
+const GRADIENT_OFF_SKUS = new Map([
+    "H610A",
+    "H6056",
+    "H6047",
+    "H610B",
+    "H6046",
+    "H6608",
+    "H6609",
+    "H606A",
+    "H6065",
+    "H6066",
+    "H6067",
+    "H6061",
+    "H6043",
+    "H6042",
+    "H70BC",
+    "H6063",
+    "H6069",
+    "H8069"
+]);
 
 export default class GoveeDevice
 {
@@ -296,6 +316,12 @@ export default class GoveeDevice
         this.send(deviceDataRequestPacket, this.statusPort)
     }
 
+    getGradientOff()
+    {
+        if (this.sku === null) return 1;
+        return !GRADIENT_OFF_SKUS.contains(this.sku);
+    }
+
     getRazerModeCommand(enable)
     {
         let command = encode([0xBB, 0x00, 0x01, 0xB1, enable, enable ? 0x0A : 0x0B]);
@@ -331,7 +357,14 @@ export default class GoveeDevice
 
     getDreamViewV2Command(colors)
     {
-        let dreamViewV2Header = [0xBB, 0x00, 0x20, 0xB4, 0x01, colors.length];
+        let dreamViewV2Header = [
+            0xBB,
+            (colors.length >> 8 & 0xFF),
+            (colors.length & 0xFF),
+            0xB4,
+            this.getGradientOff(),
+            colors.length
+        ];
         
         let colorsCommand = dreamViewV2Header;
         for (let c = 0; c < colors.length; c++)
@@ -341,7 +374,7 @@ export default class GoveeDevice
 
             if (c < 36)
             {
-                colorCommand.push(1);
+                colorsCommand.push(1);
             } else
             {
                 colorsCommand.push(2);
@@ -355,7 +388,14 @@ export default class GoveeDevice
 
     getDreamViewCommand(colors)
     {
-        let dreamViewHeader = [0xBB, 0x00, 0x20, 0xB0, 0x01, colors.length];
+        let dreamViewHeader = [
+            0xBB,
+            (colors.length >> 8 & 0xFF),
+            (colors.length & 0xFF),
+            0xB0,
+            this.getGradientOff(),
+            colors.length
+        ];
         
         let colorsCommand = dreamViewHeader;
         for (let c = 0; c < colors.length; c++)
