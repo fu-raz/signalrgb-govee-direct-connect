@@ -587,14 +587,24 @@ export default class GoveeDevice
         this.udpServer.write(command, this.ip, port ? port : this.port);
     }
 
+    turnOffRazer()
+    {
+        this.send(this.getRazerModeCommand(false));
+        this.razerOn = false;
+    }
+
     turnOff()
     {
         this.pt = null;
+        this.turnOffRazer();
+
         this.razerOn = false;
         this.onOff = 0;
         this.enabled = false;
+
         // Set color to black
-        this.singleColor([0,0,0], 0);
+        // this.singleColor([0,0,0], 0);
+        
         // Turn device off
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
     }
