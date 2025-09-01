@@ -173,6 +173,9 @@ export default class GoveeDeviceUI
                 this.goveeDevice.turnOff();
                 break;
         }
+
+        this.device.log('Shutting down UDP');
+        this.goveeDevice.stopUdpServer();
     }
 
     parseChannelColors(inlineColors)

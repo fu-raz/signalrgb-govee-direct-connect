@@ -56,6 +56,9 @@ export default class GoveeDevice
         this.lastSingleColor = '';
 
         this.hasChanged = false;
+
+        this.forceStatusUpdate = false;
+        this.waitingForStatusUpdate = false;
     }
 
     handleSocketMessage(message)
@@ -126,6 +129,16 @@ export default class GoveeDevice
 
             // Listen to this device specific port
             this.udpServer.bind(this.uniquePort);
+        }
+    }
+
+    stopUdpServer()
+    {
+        if (this.udpServer)
+        {
+            this.udpServer.disconnect();
+		    this.udpServer.close();
+            this.udpServer = false;
         }
     }
 
@@ -238,6 +251,8 @@ export default class GoveeDevice
             this.pt = receivedData.pt;
             this.decodePTData(receivedData.pt);
         }
+
+        this.waitingForStatusUpdate = false;
     }
 
     generateName()
@@ -298,22 +313,39 @@ export default class GoveeDevice
             if (byteArrayPt[3] == 0xb2)
             {
                 this.razerOn = (byteArrayPt[4] == 0x01) ? true : false;
-                if (this.razerOn) this.log('Turned razer mode on');
+                if (this.razerOn)
+                {
+                    this.log('Turned razer mode on');
+                } else
+                {
+                    this.log('Razer mode is off: ' + pt);
+                }
+            } else
+            {
+                this.log('PT is weird: ' + pt);
             }
         }
     }
 
     getStatus()
     {
-        const statusPacket = { msg: { cmd: "status", data: {} } };
-        this.send(statusPacket);
+        if (!this.waitingForStatusUpdate)
+        {
+            this.waitingForStatusUpdate = true;
+            const statusPacket = { msg: { cmd: "status", data: {} } };
+            this.send(statusPacket);
+        }
     }
 
     requestDeviceData()
     {
-        this.log('Asking device for device data');
-        const deviceDataRequestPacket = {msg: { cmd: 'scan', data: {account_topic: 'reserve'} }};
-        this.send(deviceDataRequestPacket, this.statusPort)
+        if (!this.waitingForDeviceUpdate)
+        {
+            this.waitingForDeviceUpdate = true;
+            this.log('Asking device for device data');
+            const deviceDataRequestPacket = {msg: { cmd: 'scan', data: {account_topic: 'reserve'} }};
+            this.send(deviceDataRequestPacket, this.statusPort)
+        }
     }
 
     getGradientOff()
@@ -487,17 +519,18 @@ export default class GoveeDevice
             {
                 this.requestDeviceData();
                 this.lastDeviceDataCheck = now;
-
+                
                 // Not sending more commands to not overload
                 return;
             }
     
-            // Every 20 seconds check if we need to enable razer
+            // Every 20 seconds check if we need to get the device data, cause ID = null
             if (now - this.lastRender > 20 * 1000)
             {
                 // Check if we have the device data already
                 if (this.id == null)
                 {
+                    
                     // There's no unique ID, so we need to get that data
                     this.requestDeviceData();
                 }
@@ -509,8 +542,9 @@ export default class GoveeDevice
             }
 
             // Every 10 seconds check the status
-            if (this.id !== null && now - this.lastStatus > 10 * 1000)
+            if (this.id !== null && now - this.lastStatus > 10 * 1000 || this.forceStatusUpdate)
             {
+                this.forceStatusUpdate = false;
                 this.getStatus();
                 this.lastStatus = now;
                 return
@@ -521,7 +555,8 @@ export default class GoveeDevice
             if (!this.onOff)
             {
                 this.turnOn();
-                this.onOff = true;
+                this.forceStatusUpdate = true;
+                // this.onOff = true;
             }
 
             if (this.type !== PROTOCOL_SINGLE_COLOR)
@@ -529,7 +564,8 @@ export default class GoveeDevice
                 if (!this.razerOn)
                 {
                     this.send(this.getRazerModeCommand(true));
-                    this.razerOn = true;
+                    this.forceStatusUpdate = true;
+                    // this.razerOn = true;
                 }
             }
 
@@ -591,14 +627,13 @@ export default class GoveeDevice
     {
         this.send(this.getRazerModeCommand(false));
         this.razerOn = false;
+        this.pt = null;
     }
 
     turnOff()
     {
-        this.pt = null;
         this.turnOffRazer();
 
-        this.razerOn = false;
         this.onOff = 0;
         this.enabled = false;
 

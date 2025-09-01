@@ -40,10 +40,10 @@ export function Render()
     goveeUI.render(lightingMode, forcedColor, now, frameDelay);
 }
 
-export function Shutdown()
+export function Shutdown(SystemSuspending)
 {
     device.log('Shutting down');
-	goveeUI.shutDown(turnOff, shutDownColor);
+    goveeUI.shutDown(turnOff, shutDownColor);
 }
 
 export function Validate()
