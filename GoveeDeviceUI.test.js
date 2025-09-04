@@ -162,10 +162,10 @@ export default class GoveeDeviceUI
     {
         switch(shutDownMode)
         {
-            case "Relieve control":
+            case "Release control":
                 this.goveeDevice.turnOffRazer();
                 break;
-                
+
             case "Single color":
                 this.goveeDevice.shuttingDown = true;
                 this.goveeDevice.singleColor(this.hexToRGB(shutDownColor), null, true);
