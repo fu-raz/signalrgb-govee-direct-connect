@@ -621,7 +621,7 @@ export default class GoveeDevice
         }
 
         let jsonColor = JSON.stringify(color);
-        if (jsonColor !== this.lastSingleColor)
+        if (jsonColor !== this.lastSingleColor || shutDown)
         {
             this.lastSingleColor = jsonColor;
             let colorCommand = this.getSolidColorCommand([color]);
@@ -644,18 +644,16 @@ export default class GoveeDevice
 
     turnOff()
     {
+        // Set to shutdown mode so no new packets are being sent
         this.shuttingDown = true;
-        this.turnOffRazer();
-
-        // this.onOff = 0;
-        // this.enabled = false;
-
-        // Set color to black
-        // this.singleColor([0,0,0], 0);
         
         // Turn device off
-        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
         // Maybe force it a little? :)
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
     }
 
