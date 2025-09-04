@@ -2,10 +2,9 @@ import udp from "@SignalRGB/udp";
 
 export default class GoveeController
 {
-    constructor(goveeDevice, discovery)
+    constructor(goveeDevice)
     {
         this.device = goveeDevice;
-        this.discovery = discovery;
 
         this.id = goveeDevice.ip;
         this.name = goveeDevice.getName();
@@ -45,7 +44,9 @@ export default class GoveeController
         {
             // Change the device name
             this.device.name = this.device.generateName();
-            this.discovery.changeIp(this.device.ip, ip);
+            
+            // We should change the IP in discovery
+            // this.discovery.changeIp(this.device.ip, ip);
 
             // Update the controller ID and name
             this.id = ip;
@@ -57,7 +58,7 @@ export default class GoveeController
         //this.sendToDevice({msg: { cmd: 'disconnect' }})
 
         // Let discovery know that we updated the device settings and need to reinit the device
-        this.discovery.updatedController(this);
+        // this.discovery.updatedController(this);
     }
 
     toCacheJSON()
@@ -82,7 +83,7 @@ export default class GoveeController
                 this.device.hasChanged = false;
 
                 // Save the new data to the cache
-                this.discovery.saveCache();
+                // this.discovery.saveCache();
             }
 
             let goveeResponse = JSON.parse(value.data);

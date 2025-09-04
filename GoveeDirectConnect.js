@@ -71,8 +71,6 @@ export function DiscoveryService()
         this.lastPort = service.getSetting('ipCache', 'lastUniquePort');
         if (!this.lastPort) this.getUniquePort();
 
-        this.convertSettings();
-        
         this.lastPollTime = Date.now();
         this.devicesLoaded = false;
 
@@ -86,32 +84,6 @@ export function DiscoveryService()
         this.udpServer.on('message', this.handleSocketMessage.bind(this));
         this.udpServer.on('error', this.handleSocketError.bind(this));
         this.udpServer.bind(4002);
-    }
-
-    this.convertSettings = function()
-    {
-        let oldSettingsData = service.getSetting('GoveeDirectConnect', 'devices');
-        let newSettingsData = service.getSetting('ipCache', 'cache');
-
-        if(oldSettingsData !== undefined && !newSettingsData)
-        {
-            service.log('Found old settings');
-            let oldSettings = JSON.parse(oldSettingsData);
-            for(let ip of Object.keys(oldSettings))
-            {
-                // We found the ip, let's find the device id
-                let deviceData = oldSettings[ip];
-                deviceData.id = deviceData.device;
-
-                //Create a new Govee device so we can save the data
-                let goveeDevice = new GoveeDevice(deviceData);
-                goveeDevice.save();
-            }
-
-            this.saveCache();
-
-            // service.removeSetting('GoveeDirectConnect', 'devices');
-        }
     }
 
     this.forceDiscover = function(ip, leds, type, split)
@@ -280,7 +252,7 @@ export function DiscoveryService()
         }
 
         // Create and store controller for network tab
-        let goveeController = new GoveeController(goveeDevice, this);
+        let goveeController = new GoveeController(goveeDevice);
 
         // Start the udp socket?
         goveeController.setupUDPSocket();

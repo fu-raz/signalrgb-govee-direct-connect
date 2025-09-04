@@ -59,6 +59,8 @@ export default class GoveeDevice
 
         this.forceStatusUpdate = false;
         this.waitingForStatusUpdate = false;
+
+        this.shuttingDown = false;
     }
 
     handleSocketMessage(message)
@@ -327,10 +329,15 @@ export default class GoveeDevice
         }
     }
 
-    getStatus()
+    getStatus(now)
     {
+        // Sometimes timing gets in the way of receiving status message
+        // So after 10 seconds without a status message, we reset and ask again
+        if (now - this.lastStatus < 10 * 1000) this.waitingForStatusUpdate = false;
+
         if (!this.waitingForStatusUpdate)
         {
+            this.lastStatus = now;
             this.waitingForStatusUpdate = true;
             const statusPacket = { msg: { cmd: "status", data: {} } };
             this.send(statusPacket);
@@ -507,6 +514,8 @@ export default class GoveeDevice
 
     sendRGB(colors, now, frameDelay)
     {
+        if (this.shuttingDown) return;
+
         if (this.enabled)
         {
             if (this.split == 2)
@@ -533,30 +542,31 @@ export default class GoveeDevice
                     
                     // There's no unique ID, so we need to get that data
                     this.requestDeviceData();
+                    this.lastRender = now;
+                    // Not sending more commands to not overload
+                    return
                 }
-                
-                this.lastRender = now;
+            }
 
-                // Not sending more commands to not overload
+            // If status update is forced do it
+            if (this.forceStatusUpdate)
+            {
+                this.forceStatusUpdate = false;
+                this.getStatus(now);
                 return
             }
 
             // Every 10 seconds check the status
-            if (this.id !== null && now - this.lastStatus > 10 * 1000 || this.forceStatusUpdate)
+            if (this.id !== null && now - this.lastStatus > 10 * 1000)
             {
-                this.forceStatusUpdate = false;
-                this.getStatus();
-                this.lastStatus = now;
+                this.getStatus(now);
                 return
             }
 
-            // We're just going to assume some things
-            // This is because the device sometimes refuses to send us info
             if (!this.onOff)
             {
                 this.turnOn();
                 this.forceStatusUpdate = true;
-                // this.onOff = true;
             }
 
             if (this.type !== PROTOCOL_SINGLE_COLOR)
@@ -565,7 +575,6 @@ export default class GoveeDevice
                 {
                     this.send(this.getRazerModeCommand(true));
                     this.forceStatusUpdate = true;
-                    // this.razerOn = true;
                 }
             }
 
@@ -582,7 +591,6 @@ export default class GoveeDevice
                     device.error(ex.message);
                     device.error(colors);
                 }
-                
 
                 frameDelay = parseInt(frameDelay);
                 if (frameDelay > 0)
@@ -593,9 +601,9 @@ export default class GoveeDevice
         }
     }
 
-    singleColor(color, now)
+    singleColor(color, now, shutDown)
     {
-        if (now - this.lastRender > 10000)
+        if (now - this.lastRender > 10000 || shutDown)
         {
             // Turn off Razer mode
             if (this.razerOn)
@@ -604,7 +612,11 @@ export default class GoveeDevice
                 this.send(this.getRazerModeCommand(false));
             }
 
-            this.getStatus();
+            if (!shutDown)
+            {
+                this.getStatus();
+            }
+
             this.lastRender = now;
         }
 
@@ -632,15 +644,18 @@ export default class GoveeDevice
 
     turnOff()
     {
+        this.shuttingDown = true;
         this.turnOffRazer();
 
-        this.onOff = 0;
-        this.enabled = false;
+        // this.onOff = 0;
+        // this.enabled = false;
 
         // Set color to black
         // this.singleColor([0,0,0], 0);
         
         // Turn device off
+        this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+        // Maybe force it a little? :)
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
     }
 
