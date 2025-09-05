@@ -332,8 +332,8 @@ export default class GoveeDevice
     getStatus(now)
     {
         // Sometimes timing gets in the way of receiving status message
-        // So after 10 seconds without a status message, we reset and ask again
-        if (now - this.lastStatus < 10 * 1000) this.waitingForStatusUpdate = false;
+        // So after 30 seconds without receiving a status message, we reset and ask again
+        if ((now - this.lastStatus) < 30 * 1000) this.waitingForStatusUpdate = false;
 
         if (!this.waitingForStatusUpdate)
         {
@@ -341,6 +341,8 @@ export default class GoveeDevice
             this.waitingForStatusUpdate = true;
             const statusPacket = { msg: { cmd: "status", data: {} } };
             this.send(statusPacket);
+
+            this.log('Sending status packet');
         }
     }
 
@@ -553,14 +555,9 @@ export default class GoveeDevice
             {
                 this.forceStatusUpdate = false;
                 this.getStatus(now);
-                return
-            }
-
-            // Every 10 seconds check the status
-            if (this.id !== null && now - this.lastStatus > 10 * 1000)
+            } else if (this.id !== null && (now - this.lastStatus) > 10 * 1000)
             {
                 this.getStatus(now);
-                return
             }
 
             if (!this.onOff)
@@ -614,7 +611,7 @@ export default class GoveeDevice
 
             if (!shutDown)
             {
-                this.getStatus();
+                this.getStatus(0);
             }
 
             this.lastRender = now;
