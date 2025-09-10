@@ -614,7 +614,7 @@ export default class GoveeDevice
 
             if (!shutDown)
             {
-                this.getStatus(n);
+                this.getStatus(0);
             }
 
             this.lastRender = now;
