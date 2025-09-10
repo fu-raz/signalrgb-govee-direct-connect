@@ -71,7 +71,7 @@ export default class GoveeController
         service.log(errMessage);
     }
 
-    relaySocketMessage(value)
+    relaySocketMessage(value, discovery)
     {
         if (this.device.uniquePort)
         {
@@ -83,7 +83,7 @@ export default class GoveeController
                 this.device.hasChanged = false;
 
                 // Save the new data to the cache
-                // this.discovery.saveCache();
+                discovery.saveCache();
             }
 
             let goveeResponse = JSON.parse(value.data);
@@ -105,7 +105,6 @@ export default class GoveeController
     {
         if (!this.udpSocket)
         {
-            service.log('Device has unique port ' + this.device.uniquePort);
             service.log('Creating udp socket for controller ' + this.id);
             this.udpSocket = udp.createSocket();
             this.udpSocket.on('error', this.handleSocketError.bind(this));

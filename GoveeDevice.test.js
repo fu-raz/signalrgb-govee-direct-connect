@@ -335,7 +335,7 @@ export default class GoveeDevice
     {
         // Sometimes timing gets in the way of receiving status message
         // So after 30 seconds without receiving a status message, we reset and ask again
-        if ((now - this.lastStatus) < 30 * 1000) this.waitingForStatusUpdate = false;
+        if ((now - this.lastStatus) > 30 * 1000) this.waitingForStatusUpdate = false;
 
         if (!this.waitingForStatusUpdate)
         {

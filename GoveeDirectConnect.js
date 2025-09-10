@@ -5,7 +5,7 @@ import GoveeController from "./GoveeController.test.js";
 import GoveeDeviceUI from "./GoveeDeviceUI.test.js";
 
 export function Name() { return "Govee Direct Connect"; }
-export function Version() { return "2.1.0"; }
+export function Version() { return "2.1.1"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }
 export function Size() { return [1, 1]; }
@@ -170,7 +170,7 @@ export function DiscoveryService()
         if (this.GoveeDeviceControllers.hasOwnProperty(ip))
         {
             let goveeController = this.GoveeDeviceControllers[ip];
-            goveeController.relaySocketMessage(value);
+            goveeController.relaySocketMessage(value, this);
         } else
         {
             service.log(`Cannot find controller for ${ip}`);
