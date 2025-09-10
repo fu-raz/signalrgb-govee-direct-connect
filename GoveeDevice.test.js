@@ -257,6 +257,7 @@ export default class GoveeDevice
         }
 
         this.waitingForStatusUpdate = false;
+        this.lastStatus = Date.now();
     }
 
     generateName()
@@ -319,7 +320,7 @@ export default class GoveeDevice
                 this.razerOn = (byteArrayPt[4] == 0x01) ? true : false;
                 if (this.razerOn)
                 {
-                    this.log('Turned razer mode on');
+                    this.log('Razer mode is on: ' + pt);
                 } else
                 {
                     this.log('Razer mode is off: ' + pt);
@@ -613,7 +614,7 @@ export default class GoveeDevice
 
             if (!shutDown)
             {
-                this.getStatus(0);
+                this.getStatus(n);
             }
 
             this.lastRender = now;
