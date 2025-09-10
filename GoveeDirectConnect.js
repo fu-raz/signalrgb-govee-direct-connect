@@ -5,7 +5,7 @@ import GoveeController from "./GoveeController.test.js";
 import GoveeDeviceUI from "./GoveeDeviceUI.test.js";
 
 export function Name() { return "Govee Direct Connect"; }
-export function Version() { return "2.0.0"; }
+export function Version() { return "2.1.0"; }
 export function Type() { return "network"; }
 export function Publisher() { return "RickOfficial"; }
 export function Size() { return [1, 1]; }
@@ -53,6 +53,7 @@ export function Validate()
 
 export function DiscoveryService()
 {
+    service.log("You're running version " + Version());
     this.IconUrl = getGoveeLogo();
 
     this.lastPollTime = -5000;
