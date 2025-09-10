@@ -105,6 +105,7 @@ export default class GoveeController
     {
         if (!this.udpSocket)
         {
+            service.log('Device has unique port ' + this.device.uniquePort);
             service.log('Creating udp socket for controller ' + this.id);
             this.udpSocket = udp.createSocket();
             this.udpSocket.on('error', this.handleSocketError.bind(this));

@@ -129,6 +129,8 @@ export default class GoveeDevice
             this.udpServer.on('error', this.handleSocketError.bind(this));
             this.udpServer.on('listening', this.handleListening.bind(this));
 
+            this.log('Trying to bind UDP port ' + this.uniquePort);
+
             // Listen to this device specific port
             this.udpServer.bind(this.uniquePort);
         }

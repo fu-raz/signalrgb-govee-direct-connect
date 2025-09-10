@@ -83,6 +83,7 @@ export function DiscoveryService()
         this.udpServer = udp.createSocket();
         this.udpServer.on('message', this.handleSocketMessage.bind(this));
         this.udpServer.on('error', this.handleSocketError.bind(this));
+        service.log('Trying to bind UDP port 4002');
         this.udpServer.bind(4002);
     }
 
@@ -217,6 +218,7 @@ export function DiscoveryService()
 
     this.getUniquePort = function()
     {
+        
         if (!this.lastPort || this.lastPort < 46920)
         {
             this.lastPort = 46920;
@@ -225,6 +227,7 @@ export function DiscoveryService()
             this.lastPort++;
         }
         
+        service.log('Assigning unique port ' + this.lastPort)
         // Save the new port:
         service.saveSetting('ipCache', 'lastUniquePort', this.lastPort);
         return this.lastPort;
