@@ -80,11 +80,14 @@ export function DiscoveryService()
     this.startSocketServer = function()
     {
         // Start the udp server
-        this.udpServer = udp.createSocket();
-        this.udpServer.on('message', this.handleSocketMessage.bind(this));
-        this.udpServer.on('error', this.handleSocketError.bind(this));
-        service.log('Trying to bind UDP port 4002');
-        this.udpServer.bind(4002);
+        if (!this.udpServer)
+        {
+            this.udpServer = udp.createSocket();
+            this.udpServer.on('message', this.handleSocketMessage.bind(this));
+            this.udpServer.on('error', this.handleSocketError.bind(this));
+            service.log('Trying to bind UDP port 4002');
+            this.udpServer.bind(4002);
+        }
     }
 
     this.forceDiscover = function(ip, leds, type, split)
@@ -226,7 +229,7 @@ export function DiscoveryService()
         {
             this.lastPort++;
         }
-        
+
         service.log('Assigning unique port ' + this.lastPort)
         // Save the new port:
         service.saveSetting('ipCache', 'lastUniquePort', this.lastPort);
