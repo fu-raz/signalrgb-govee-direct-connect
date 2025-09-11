@@ -283,7 +283,7 @@ export function DiscoveryService()
 
 function getGoveeLogo()
 {
-    return 'data:image/png;base64,' + goveeProducts['default'].base64Image;
+    return goveeProducts['default'].base64Image;
 }
 
 

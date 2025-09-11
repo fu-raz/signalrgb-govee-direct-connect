@@ -35,8 +35,12 @@ export default class GoveeDeviceUI
 
     getImage(sku)
     {
-        if (goveeProducts.hasOwnProperty(sku)) return goveeProducts[sku].base64Image;
-        return goveeProducts.default.base64Image;
+        if (goveeProducts.hasOwnProperty(sku))
+        {
+            if (goveeProducts[sku].hasOwnProperty("base64Image")) return goveeProducts[sku].base64Image.replace('data:image/png;base64,', '');
+        }
+        
+        return goveeProducts.default.base64Image.replace('data:image/png;base64,', '');
     }
 
     log(data)

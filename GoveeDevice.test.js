@@ -563,7 +563,7 @@ export default class GoveeDevice
                 this.getStatus(now);
             }
 
-            if (!this.onOff)
+            if (!this.onOff && !this.waitingForStatusUpdate)
             {
                 this.turnOn();
                 this.forceStatusUpdate = true;
@@ -571,7 +571,7 @@ export default class GoveeDevice
 
             if (this.type !== PROTOCOL_SINGLE_COLOR)
             {
-                if (!this.razerOn)
+                if (!this.razerOn && !this.waitingForStatusUpdate)
                 {
                     this.send(this.getRazerModeCommand(true));
                     this.forceStatusUpdate = true;
@@ -655,6 +655,9 @@ export default class GoveeDevice
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
         this.send({ msg: { cmd: "turn", data: { value: 0 } } });
+
+        this.turnOffRazer();
+        this.turnOffRazer();
     }
 
     turnOn()
